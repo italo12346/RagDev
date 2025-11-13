@@ -5,46 +5,48 @@ import (
 	"api/src/model"
 	"api/src/repository"
 	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
 )
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
-	// Garante que o corpo da requisição será fechado no final
 	defer r.Body.Close()
 
-	// Lê o corpo da requisição
-	bodyRequest, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Não foi possível ler o corpo da requisição", http.StatusBadRequest)
-		return
-	}
-
-	// Desserializa o JSON recebido
 	var user model.User
-	if err := json.Unmarshal(bodyRequest, &user); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, "JSON inválido", http.StatusBadRequest)
 		return
 	}
 
-	// Conecta ao banco de dados
-	db, err := database.Connect()
-	if err != nil {
-		http.Error(w, "Erro ao conectar ao banco de dados #"+err.Error(), http.StatusInternalServerError)
+	// 🔒 Gera o hash da senha antes de salvar
+	if err := user.Prepare("create"); err != nil {
+		http.Error(w, "Erro ao processar senha: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	repository := repository.NewUserRepository(db)
-	repository.Create(user)
-	w.Write([]byte(fmt.Sprintf("Usuário criado com sucesso! ID: %d", user.ID)))
 
-	defer db.Close() // sempre fechar o banco ao final
+	db, err := database.Connect()
+	if err != nil {
+		http.Error(w, "Erro ao conectar ao banco de dados: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	repo := repository.NewUserRepository(db)
+	userID, err := repo.Create(user)
+	if err != nil {
+		http.Error(w, "Erro ao criar usuário: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	user.ID = userID
+	user.Password = "" // nunca retornar senha no JSON
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(user)
 }
 
 func GetUsers(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
-	//Conecta ao banco de dados
-
+	w.Write([]byte("Get Users"))
 }
 func GetUser(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Get a User"))

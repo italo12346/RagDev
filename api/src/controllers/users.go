@@ -46,7 +46,34 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUsers(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Get Users"))
+	nameOrNick := r.URL.Query().Get("user")
+
+	db, err := database.Connect()
+	if err != nil {
+		http.Error(w, "Erro ao conectar ao banco de dados: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	repo := repository.NewUserRepository(db)
+	users, err := repo.GetAll(nameOrNick)
+	if err != nil {
+		http.Error(w, "Erro ao buscar usuários: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
+	if len(users) == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Usuário não encontrado",
+		})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(users)
 }
 func GetUser(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Get a User"))

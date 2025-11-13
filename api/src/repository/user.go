@@ -3,6 +3,7 @@ package repository
 import (
 	"api/src/model"
 	"database/sql"
+	"fmt"
 	"log"
 )
 
@@ -36,7 +37,34 @@ func (u UserRepository) Create(user model.User) (uint64, error) {
 	return uint64(lastInsertId), nil
 }
 
-func (u UserRepository) GetAll(user model.User) (uint64, error) {
-	log.Fatal([]byte("Get all Users"))
-	return 0, nil
+// Busca todos os usuários cujo nome ou nick contenham o termo fornecido
+func (u UserRepository) GetAll(nameOrNick string) ([]model.User, error) {
+	nameOrNick = fmt.Sprintf("%%%s%%", nameOrNick) // adiciona % para busca parcial
+
+	query := "SELECT id, name, nick, email, createdAt FROM users WHERE name LIKE ? OR nick LIKE ?"
+
+	rows, err := u.db.Query(query, nameOrNick, nameOrNick)
+	if err != nil {
+		log.Println("Erro ao executar a query de seleção:", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []model.User
+
+	for rows.Next() {
+		var user model.User
+		if err := rows.Scan(&user.ID, &user.Name, &user.Nick, &user.Email, &user.CreatedAt); err != nil {
+			log.Println("Erro ao escanear o usuário:", err)
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Println("Erro durante a leitura das linhas:", err)
+		return nil, err
+	}
+
+	return users, nil
 }

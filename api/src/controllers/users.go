@@ -5,6 +5,7 @@ import (
 	"api/src/model"
 	"api/src/repository"
 	"encoding/json"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -117,7 +118,52 @@ func GetByID(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Update User"))
+	params := mux.Vars(r)
+	userID, err := strconv.ParseUint(params["userId"], 10, 64)
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Erro ao ler corpo da requisição: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	var user model.User
+	if err = json.Unmarshal(body, &user); err != nil {
+		http.Error(w, "Erro ao converter usuário: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// valida campos e trata senha caso enviada
+	if err = user.Prepare("update"); err != nil {
+		http.Error(w, "Erro ao validar dados: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	db, err := database.Connect()
+	if err != nil {
+		http.Error(w, "Erro ao conectar ao banco: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	repo := repository.NewUserRepository(db)
+
+	// Atualiza
+	if err = repo.Update(userID, user); err != nil {
+		http.Error(w, "Erro ao atualizar usuário: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	user.ID = userID
+	user.Password = "" // nunca retornar senha
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
 }
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Delete User"))

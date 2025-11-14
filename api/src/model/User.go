@@ -7,7 +7,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// User representa um usuário do sistema
 type User struct {
 	ID        uint64 `json:"id"`
 	Name      string `json:"name"`
@@ -17,20 +16,26 @@ type User struct {
 	CreatedAt string `json:"createdAt"`
 }
 
-// Prepare valida e formata os dados do usuário antes de salvar
 func (u *User) Prepare(stage string) error {
 	if err := u.validate(stage); err != nil {
 		return err
 	}
 
 	u.format()
-	if stage == "create" { // só gera hash na criação
+
+	// Se NÃO enviaram senha no update → não gerar hash
+	if stage == "update" && u.Password == "" {
+		return nil
+	}
+
+	// Se enviaram senha → sempre gerar hash
+	if u.Password != "" {
 		return u.hashPassword()
 	}
+
 	return nil
 }
 
-// validate checa se todos os campos obrigatórios estão preenchidos e válidos
 func (u *User) validate(stage string) error {
 	if strings.TrimSpace(u.Name) == "" {
 		return errors.New("o nome é obrigatório")
@@ -44,8 +49,8 @@ func (u *User) validate(stage string) error {
 		return errors.New("o email é obrigatório")
 	}
 
-	if !strings.Contains(u.Email, "@") || !strings.Contains(u.Email, ".") {
-		return errors.New("o email informado é inválido")
+	if !strings.Contains(u.Email, "@") {
+		return errors.New("email inválido")
 	}
 
 	if stage == "create" && len(u.Password) < 6 {
@@ -55,19 +60,17 @@ func (u *User) validate(stage string) error {
 	return nil
 }
 
-// format padroniza os campos do usuário
 func (u *User) format() {
 	u.Name = strings.TrimSpace(u.Name)
 	u.Nick = strings.TrimSpace(u.Nick)
 	u.Email = strings.ToLower(strings.TrimSpace(u.Email))
 }
 
-// hashPassword gera um hash seguro da senha
 func (u *User) hashPassword() error {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+	hashed, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
-	u.Password = string(hashedPassword)
+	u.Password = string(hashed)
 	return nil
 }

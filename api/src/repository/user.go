@@ -94,3 +94,43 @@ func (u UserRepository) GetByID(id uint64) (model.User, error) {
 
 	return user, nil
 }
+
+// Atualiza um usuário pelo ID
+func (u UserRepository) Update(id uint64, user model.User) error {
+
+	// 1️⃣ Verifica se o usuário existe
+	var exists bool
+	err := u.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)", id).Scan(&exists)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return errors.New("usuário não encontrado")
+	}
+
+	// 2️⃣ Se NÃO enviar senha → manter a senha atual
+	if user.Password == "" {
+		err := u.db.QueryRow("SELECT password FROM users WHERE id = ?", id).Scan(&user.Password)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return errors.New("usuário não encontrado")
+			}
+			return err
+		}
+	}
+
+	// 3️⃣ Executa o UPDATE
+	query := `
+		UPDATE users 
+		SET name = ?, nick = ?, email = ?, password = ?
+		WHERE id = ?
+	`
+
+	_, err = u.db.Exec(query, user.Name, user.Nick, user.Email, user.Password, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

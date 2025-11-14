@@ -3,6 +3,7 @@ package repository
 import (
 	"api/src/model"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 )
@@ -67,4 +68,29 @@ func (u UserRepository) GetAll(nameOrNick string) ([]model.User, error) {
 	}
 
 	return users, nil
+}
+func (u UserRepository) GetByID(id uint64) (model.User, error) {
+	var user model.User
+
+	query := "SELECT id, name, nick, email, createdAt FROM users WHERE id = ?"
+
+	// Executa a query e escaneia o resultado
+	err := u.db.QueryRow(query, id).Scan(
+		&user.ID,
+		&user.Name,
+		&user.Nick,
+		&user.Email,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// Nenhum usuário encontrado
+			return user, nil
+		}
+		log.Println("Erro ao buscar usuário por ID:", err)
+		return user, errors.New("erro ao buscar usuário")
+	}
+
+	return user, nil
 }

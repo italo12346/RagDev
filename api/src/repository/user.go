@@ -134,3 +134,48 @@ func (u UserRepository) Update(id uint64, user model.User) error {
 
 	return nil
 }
+
+// Deleta um usuário pelo ID
+func (u UserRepository) Delete(id uint64) error {
+	result, err := u.db.Exec("DELETE FROM users WHERE id = ?", id)
+	if err != nil {
+		return fmt.Errorf("erro ao deletar usuário: %w", err)
+	}
+
+	// Verifica se algum registro foi realmente apagado
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("erro ao verificar deleção: %w", err)
+	}
+
+	if rows == 0 {
+		return errors.New("usuário não encontrado")
+	}
+
+	return nil
+}
+
+// Busca um usuário pelo email
+// FindByEmail busca um usuário pelo email.
+// Retorna o usuário preenchido ou erro caso não exista.
+func (u UserRepository) FindByEmail(email string) (model.User, error) {
+	var user model.User
+
+	// Corrigido: agora "password FROM" tem espaço
+	query := "SELECT id, email, password FROM users WHERE email = ?"
+
+	err := u.db.QueryRow(query, email).Scan(
+		&user.ID,
+		&user.Email,
+		&user.Password,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return user, errors.New("usuário não encontrado")
+		}
+		return user, fmt.Errorf("erro ao buscar usuário pelo email: %w", err)
+	}
+
+	return user, nil
+}

@@ -17,6 +17,7 @@ type Route struct {
 // SettingRoutes adiciona todas as rotas ao roteador fornecido
 func SettingRoutes(router *mux.Router) *mux.Router {
 	routes := routeUsers
+	routes = append(routes, routeLogin)
 	for _, route := range routes {
 		router.HandleFunc(route.Uri, route.Function).Methods(route.Method)
 	}

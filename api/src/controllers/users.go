@@ -23,7 +23,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	// 🔒 Gera o hash da senha antes de salvar
 	if err := user.Prepare("create"); err != nil {
-		http.Error(w, "Erro ao processar senha: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Dados inválidos: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -166,5 +166,27 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Delete User"))
+	params := mux.Vars(r)
+	userID, err := strconv.ParseUint(params["userId"], 10, 64)
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	db, err := database.Connect()
+	if err != nil {
+		http.Error(w, "Erro ao conectar ao banco: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	repo := repository.NewUserRepository(db)
+
+	if err = repo.Delete(userID); err != nil {
+		http.Error(w, "Erro ao deletar usuário: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+
 }

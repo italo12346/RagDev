@@ -3,6 +3,8 @@ package repository
 import (
 	"api/src/model"
 	"database/sql"
+	"errors"
+	"fmt"
 	"log"
 )
 
@@ -36,7 +38,99 @@ func (u UserRepository) Create(user model.User) (uint64, error) {
 	return uint64(lastInsertId), nil
 }
 
-func (u UserRepository) GetAll(user model.User) (uint64, error) {
-	log.Fatal([]byte("Get all Users"))
-	return 0, nil
+// Busca todos os usuários cujo nome ou nick contenham o termo fornecido
+func (u UserRepository) GetAll(nameOrNick string) ([]model.User, error) {
+	nameOrNick = fmt.Sprintf("%%%s%%", nameOrNick) // adiciona % para busca parcial
+
+	query := "SELECT id, name, nick, email, createdAt FROM users WHERE name LIKE ? OR nick LIKE ?"
+
+	rows, err := u.db.Query(query, nameOrNick, nameOrNick)
+	if err != nil {
+		log.Println("Erro ao executar a query de seleção:", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []model.User
+
+	for rows.Next() {
+		var user model.User
+		if err := rows.Scan(&user.ID, &user.Name, &user.Nick, &user.Email, &user.CreatedAt); err != nil {
+			log.Println("Erro ao escanear o usuário:", err)
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Println("Erro durante a leitura das linhas:", err)
+		return nil, err
+	}
+
+	return users, nil
+}
+func (u UserRepository) GetByID(id uint64) (model.User, error) {
+	var user model.User
+
+	query := "SELECT id, name, nick, email, createdAt FROM users WHERE id = ?"
+
+	// Executa a query e escaneia o resultado
+	err := u.db.QueryRow(query, id).Scan(
+		&user.ID,
+		&user.Name,
+		&user.Nick,
+		&user.Email,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// Nenhum usuário encontrado
+			return user, nil
+		}
+		log.Println("Erro ao buscar usuário por ID:", err)
+		return user, errors.New("erro ao buscar usuário")
+	}
+
+	return user, nil
+}
+
+// Atualiza um usuário pelo ID
+func (u UserRepository) Update(id uint64, user model.User) error {
+
+	// 1️⃣ Verifica se o usuário existe
+	var exists bool
+	err := u.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)", id).Scan(&exists)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return errors.New("usuário não encontrado")
+	}
+
+	// 2️⃣ Se NÃO enviar senha → manter a senha atual
+	if user.Password == "" {
+		err := u.db.QueryRow("SELECT password FROM users WHERE id = ?", id).Scan(&user.Password)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return errors.New("usuário não encontrado")
+			}
+			return err
+		}
+	}
+
+	// 3️⃣ Executa o UPDATE
+	query := `
+		UPDATE users 
+		SET name = ?, nick = ?, email = ?, password = ?
+		WHERE id = ?
+	`
+
+	_, err = u.db.Exec(query, user.Name, user.Nick, user.Email, user.Password, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -177,9 +177,23 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
+
 	userID, err := strconv.ParseUint(params["userId"], 10, 64)
 	if err != nil {
 		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	// ID vindo do token
+	userIdToken, err := auth.ExtractUserID(r)
+	if err != nil {
+		http.Error(w, "Token inválido: "+err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Segurança: usuário só deleta ele mesmo
+	if userID != userIdToken {
+		http.Error(w, "Sem permissão para deletar este usuário", http.StatusForbidden)
 		return
 	}
 
@@ -191,7 +205,8 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	repo := repository.NewUserRepository(db)
-	if err = repo.Delete(userID); err != nil {
+
+	if err := repo.Delete(userID); err != nil {
 		http.Error(w, "Erro ao deletar usuário", http.StatusInternalServerError)
 		return
 	}

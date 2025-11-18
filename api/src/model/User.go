@@ -4,7 +4,9 @@ import (
 	"errors"
 	"strings"
 
-	"golang.org/x/crypto/bcrypt"
+	"api/src/security"
+
+	"github.com/badoux/checkmail"
 )
 
 type User struct {
@@ -23,14 +25,18 @@ func (u *User) Prepare(stage string) error {
 
 	u.format()
 
-	// Se NÃO enviaram senha no update → não gerar hash
+	// Update sem senha → não altera
 	if stage == "update" && u.Password == "" {
 		return nil
 	}
 
-	// Se enviaram senha → sempre gerar hash
+	// Se enviaram senha → hashear
 	if u.Password != "" {
-		return u.hashPassword()
+		hashed, err := security.HashPassword(u.Password)
+		if err != nil {
+			return err
+		}
+		u.Password = hashed
 	}
 
 	return nil
@@ -49,6 +55,10 @@ func (u *User) validate(stage string) error {
 		return errors.New("o email é obrigatório")
 	}
 
+	if err := checkmail.ValidateFormat(u.Email); err != nil {
+		return err
+	}
+
 	if !strings.Contains(u.Email, "@") {
 		return errors.New("email inválido")
 	}
@@ -64,13 +74,4 @@ func (u *User) format() {
 	u.Name = strings.TrimSpace(u.Name)
 	u.Nick = strings.TrimSpace(u.Nick)
 	u.Email = strings.ToLower(strings.TrimSpace(u.Email))
-}
-
-func (u *User) hashPassword() error {
-	hashed, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-	u.Password = string(hashed)
-	return nil
 }

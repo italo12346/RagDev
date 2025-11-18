@@ -13,6 +13,7 @@ var (
 	DBPassword string
 	DBName     string
 	APIPort    string
+	JWTSecret  string
 )
 
 func LoadEnv() {
@@ -25,6 +26,7 @@ func LoadEnv() {
 	DBPassword = os.Getenv("DB_PASSWORD")
 	DBName = os.Getenv("DB_NAME")
 	APIPort = os.Getenv("API_PORT")
+	JWTSecret = os.Getenv("JWT_SECRET")
 
 	// Apenas confirma que as variáveis foram carregadas — sem mostrar senhas ou strings
 	if DBUser == "" || DBPassword == "" || DBName == "" {
@@ -35,6 +37,10 @@ func LoadEnv() {
 
 	if APIPort == "" {
 		log.Println("⚠️  Porta da API não definida (API_PORT).")
+	}
+
+	if JWTSecret == "" {
+		log.Println("⚠️  Segredo JWT não definido (JWT_SECRET).")
 	}
 
 }

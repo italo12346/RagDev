@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"api/src/auth"
 	"api/src/database"
 	"api/src/model"
 	"api/src/repository"
@@ -41,5 +42,10 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Usuário ou senha inválidos", http.StatusUnauthorized)
 		return
 	}
-	w.Write([]byte("Logado com sucesso"))
+	token, err := auth.TokenGenerator(storedUser.ID)
+	if err != nil {
+		http.Error(w, "Erro ao gerar token de autenticação", http.StatusInternalServerError)
+		return
+	}
+	w.Write([]byte(token))
 }

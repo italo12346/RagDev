@@ -1,0 +1,165 @@
+openapi: 3.0.3
+info:
+  title: API de Usuários
+  version: 1.0.0
+  description: Documentação da API de usuários com autenticação JWT.
+
+servers:
+  - url: http://localhost:5000
+    description: Servidor local
+
+paths:
+  /users:
+    post:
+      summary: Cria um novo usuário
+      tags: [Usuários]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreate"
+      responses:
+        '201':
+          description: Usuário criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        '400':
+          description: Erro no JSON enviado
+        '500':
+          description: Erro interno
+
+    get:
+      summary: Lista usuários pelo nome ou nick
+      tags: [Usuários]
+      parameters:
+        - name: user
+          in: query
+          description: Nome ou nick
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de usuários encontrada
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        '404':
+          description: Nenhum usuário encontrado
+
+  /users/{userId}:
+    get:
+      summary: Retorna um usuário pelo ID
+      tags: [Usuários]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Usuário encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        '404':
+          description: Usuário não encontrado
+
+    put:
+      summary: Atualiza um usuário (necessita JWT)
+      tags: [Usuários]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        '200':
+          description: Usuário atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        '403':
+          description: Sem permissão para atualizar o usuário
+        '401':
+          description: Token inválido
+
+    delete:
+      summary: Exclui um usuário pelo ID
+      tags: [Usuários]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Usuário deletado
+        '404':
+          description: Usuário não encontrado
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        nick:
+          type: string
+        createdAt:
+          type: string
+
+    UserCreate:
+      type: object
+      required: [name, email, nick, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        nick:
+          type: string
+        password:
+          type: string
+
+    UserUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        nick:
+          type: string
+        password:
+          type: string

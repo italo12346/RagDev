@@ -179,3 +179,51 @@ func (u UserRepository) FindByEmail(email string) (model.User, error) {
 
 	return user, nil
 }
+
+// Permite que um usuário siga outro
+func (u UserRepository) Follow(followerID, userFollowedID uint64) error {
+	go fmt.Print(followerID, userFollowedID)
+	// 1 Verifica se o usuário seguido existe
+	var exists bool
+	err := u.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)", userFollowedID).Scan(&exists)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return errors.New("usuário a ser seguido não existe")
+	}
+
+	//  Verifica se já segue (evita duplicidade)
+	err = u.db.QueryRow(`
+        SELECT EXISTS(
+            SELECT 1 FROM followers 
+            WHERE follows_id = ? AND user_id = ?
+        )
+    `, followerID, userFollowedID).Scan(&exists)
+
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		return errors.New("você já está seguindo este usuário")
+	}
+
+	//  Executa follow
+	stmt, err := u.db.Prepare(`
+        INSERT INTO followers (follows_id, user_id)
+        VALUES (?, ?)
+    `)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(followerID, userFollowedID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

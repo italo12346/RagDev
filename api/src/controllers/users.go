@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -212,4 +213,42 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// Permite que um usuário siga outro
+func Follow(w http.ResponseWriter, r *http.Request) {
+	followerId, err := auth.ExtractUserID(r)
+	if err != nil {
+		http.Error(w, "Erro ao obter ID do seguidor", http.StatusUnauthorized)
+		return
+	}
+
+	params := mux.Vars(r)
+	userFollowedID, err := strconv.ParseUint(params["userId"], 10, 64)
+	if err != nil {
+		log.Print(userFollowedID)
+		http.Error(w, "Erro ao obter ID do usuário a ser seguido", http.StatusBadRequest)
+		return
+	}
+
+	// Impede seguir a si mesmo
+	if followerId == userFollowedID {
+		http.Error(w, "Você não pode seguir você mesmo", http.StatusForbidden)
+		return
+	}
+
+	db, err := database.Connect()
+	if err != nil {
+		http.Error(w, "Erro ao conectar ao banco", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	repo := repository.NewUserRepository(db)
+	if err := repo.Follow(followerId, userFollowedID); err != nil {
+		http.Error(w, "Erro ao seguir usuário: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Usuario seguido com sucesso"))
 }

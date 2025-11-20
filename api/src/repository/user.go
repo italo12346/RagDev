@@ -227,3 +227,36 @@ func (u UserRepository) Follow(followerID, userFollowedID uint64) error {
 
 	return nil
 }
+
+// Permite que um usuário pare de seguir outro
+func (u UserRepository) Unfollow(followerID, userUnfollowedID uint64) error {
+	stmt, err := u.db.Prepare("DELETE FROM followers WHERE follows_id = ? AND user_id = ?")
+	if err != nil {
+		return err
+	}
+
+	if _, err = stmt.Exec(followerID, userUnfollowedID); err != nil {
+		return err
+	}
+	defer stmt.Close()
+	return nil
+}
+
+// Retorna os seguidores de um usuário
+func (u UserRepository) GetFollowers(userID uint64) ([]model.User, error) {
+	rows, err := u.db.Query(`SELECT u.id, u.name, u.nick, u.email, u.createdAt 
+		from users u inner join followers s on u.id = s.follows_id where s.user_id = ?`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var followers []model.User
+	for rows.Next() {
+		var follower model.User
+		if err := rows.Scan(&follower.ID, &follower.Name, &follower.Nick, &follower.Email, &follower.CreatedAt); err != nil {
+			return nil, err
+		}
+		followers = append(followers, follower)
+	}
+	return followers, nil
+}

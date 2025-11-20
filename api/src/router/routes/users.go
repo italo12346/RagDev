@@ -38,9 +38,21 @@ var routeUsers = []Route{
 	},
 	// Seguidor
 	{
-		Uri:            "/user/{userId}/userFollowedID",
+		Uri:            "/user/{userId}/userFollowed",
 		Method:         http.MethodPost,
 		Function:       controllers.Follow,
+		Authentication: true,
+	},
+	{
+		Uri:            "/user/{userId}/unfollowed",
+		Method:         http.MethodPost,
+		Function:       controllers.Unfollow,
+		Authentication: true,
+	},
+	{
+		Uri:            "/user/{userId}/followers",
+		Method:         http.MethodGet,
+		Function:       controllers.GetFollowers,
 		Authentication: true,
 	},
 }

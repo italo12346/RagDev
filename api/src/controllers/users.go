@@ -252,3 +252,78 @@ func Follow(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Usuario seguido com sucesso"))
 }
+
+func Unfollow(w http.ResponseWriter, r *http.Request) {
+	followedId, err := auth.ExtractUserID(r)
+	if err != nil {
+		http.Error(w, "Erro ao obter ID do seguidor", http.StatusUnauthorized)
+		return
+	}
+	params := mux.Vars(r)
+	userUnfollowedID, err := strconv.ParseUint(params["userId"], 10, 64)
+	if err != nil {
+		http.Error(w, "Erro ao obter ID do usuário a ser deixado de seguir", http.StatusBadRequest)
+		return
+	}
+	// Impede deixar de seguir a si mesmo
+	if followedId == userUnfollowedID {
+		http.Error(w, "Você não pode deixar de seguir você mesmo", http.StatusForbidden)
+		return
+	}
+	db, err := database.Connect()
+	if err != nil {
+		http.Error(w, "Erro ao conectar ao banco", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+	repository := repository.NewUserRepository(db)
+	if err := repository.Unfollow(followedId, userUnfollowedID); err != nil {
+		http.Error(w, "Erro ao deixar de seguir usuário: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Usuário deixado de seguir com sucesso",
+	})
+}
+
+// Retorna os seguidores de um usuário
+func GetFollowers(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	// valida o ID
+	userID, err := strconv.ParseUint(params["userId"], 10, 64)
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	db, err := database.Connect()
+	if err != nil {
+		http.Error(w, "Erro ao conectar ao banco: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	repo := repository.NewUserRepository(db)
+
+	followers, err := repo.GetFollowers(userID)
+	if err != nil {
+		http.Error(w, "Erro ao buscar seguidores: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if len(followers) == 0 {
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Este usuário não possui seguidores",
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(followers)
+}

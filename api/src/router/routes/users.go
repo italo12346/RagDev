@@ -36,4 +36,35 @@ var routeUsers = []Route{
 		Function:       controllers.DeleteUser,
 		Authentication: true,
 	},
+	// Seguidor
+	{
+		Uri:            "/user/{userId}/userFollowed",
+		Method:         http.MethodPost,
+		Function:       controllers.Follow,
+		Authentication: true,
+	},
+	{
+		Uri:            "/user/{userId}/unfollowed",
+		Method:         http.MethodPost,
+		Function:       controllers.Unfollow,
+		Authentication: true,
+	},
+	{
+		Uri:            "/user/{userId}/followers",
+		Method:         http.MethodGet,
+		Function:       controllers.GetFollowers,
+		Authentication: true,
+	},
+	{
+		Uri:            "/user/{userId}/following",
+		Method:         http.MethodGet,
+		Function:       controllers.GetFollowing,
+		Authentication: true,
+	},
+	{
+		Uri:            "/user/{userId}/password-update",
+		Method:         http.MethodPost,
+		Function:       controllers.UpdatePassword,
+		Authentication: true,
+	},
 }

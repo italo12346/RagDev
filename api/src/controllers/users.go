@@ -289,7 +289,7 @@ func Unfollow(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Retorna os seguidores de um usuário
+// Retorna os seguidores de um usuário(Quem te segue)
 func GetFollowers(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
@@ -326,4 +326,42 @@ func GetFollowers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(followers)
+}
+
+// Retorna quem um determinado usuario esta seguindo(Quem você segue)
+func GetFollowing(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	userID, err := strconv.ParseUint(params["userId"], 10, 64)
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	db, err := database.Connect()
+	if err != nil {
+		http.Error(w, "Erro ao conectar ao banco: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	repo := repository.NewUserRepository(db)
+	following, err := repo.GetFollowing(userID)
+	if err != nil {
+		http.Error(w, "Erro ao buscar usuários seguidos: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if len(following) == 0 {
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Este usuário não está seguindo ninguém",
+		})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(following)
 }

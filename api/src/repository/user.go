@@ -260,3 +260,29 @@ func (u UserRepository) GetFollowers(userID uint64) ([]model.User, error) {
 	}
 	return followers, nil
 }
+
+// Retorna quem um determinado usuario esta seguindo
+func (u UserRepository) GetFollowing(userID uint64) ([]model.User, error) {
+	rows, err := u.db.Query(`
+		SELECT u.id, u.name, u.nick, u.email, u.createdAt
+		FROM users u
+		INNER JOIN followers s ON u.id = s.follows_id
+		WHERE s.user_id = ?`,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var following []model.User
+	for rows.Next() {
+		var user model.User
+		if err := rows.Scan(&user.ID, &user.Name, &user.Nick, &user.Email, &user.CreatedAt); err != nil {
+			return nil, err
+		}
+		following = append(following, user)
+	}
+
+	return following, nil
+}

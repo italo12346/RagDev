@@ -5,6 +5,7 @@ import (
 	"api/src/database"
 	"api/src/model"
 	"api/src/repository"
+	"api/src/security"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -364,4 +365,90 @@ func GetFollowing(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(following)
+}
+
+// Atualiza a senha do usuário
+func UpdatePassword(w http.ResponseWriter, r *http.Request) {
+	//  Extrai o ID do token
+	userIdToken, err := auth.ExtractUserID(r)
+	if err != nil {
+		http.Error(w, "Token inválido: "+err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Extrai o ID da URL
+	params := mux.Vars(r)
+	userID, err := strconv.ParseUint(params["userId"], 10, 64)
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	//  Valida se o usuário só pode alterar a própria senha
+	if userID != userIdToken {
+		http.Error(w, "Sem permissão para atualizar a senha deste usuário", http.StatusForbidden)
+		return
+	}
+
+	// Lê e decodifica o corpo da requisição
+	bodyRequest, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Erro ao ler corpo da requisição", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	var passwordData model.Password
+	if err = json.Unmarshal(bodyRequest, &passwordData); err != nil {
+		http.Error(w, "Erro ao converter dados de senha: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Valida se as senhas foram enviadas
+	if passwordData.OldPassword == "" || passwordData.NewPassword == "" {
+		http.Error(w, "Informe a senha antiga e a nova senha", http.StatusBadRequest)
+		return
+	}
+
+	//  Conecta ao banco
+	db, err := database.Connect()
+	if err != nil {
+		http.Error(w, "Erro ao conectar ao banco", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	repository := repository.NewUserRepository(db)
+
+	//  Busca senha atual no banco
+	currentPassword, err := repository.GetPassword(userID)
+	if err != nil {
+		http.Error(w, "Erro ao buscar senha atual: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	//  Compara a senha atual enviada com o hash
+	if err := security.CheckPasswordHash(passwordData.OldPassword, currentPassword); err != nil {
+		http.Error(w, "Senha atual incorreta", http.StatusUnauthorized)
+		return
+	}
+
+	// Gera hash da nova senha
+	hashedPassword, err := security.HashPassword(passwordData.NewPassword)
+	if err != nil {
+		http.Error(w, "Erro ao criptografar senha", http.StatusInternalServerError)
+		return
+	}
+	// Atualiza senha no banco
+	if err := repository.UpdatePassword(userID, hashedPassword); err != nil {
+		http.Error(w, "Erro ao atualizar senha: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Resposta de sucesso
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Senha atualizada com sucesso!",
+	})
 }

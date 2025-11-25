@@ -286,3 +286,38 @@ func (u UserRepository) GetFollowing(userID uint64) ([]model.User, error) {
 
 	return following, nil
 }
+
+// Retorna a senha do usuário pelo ID
+func (u UserRepository) GetPassword(userID uint64) (string, error) {
+	var password string
+
+	err := u.db.QueryRow("SELECT password FROM users WHERE id = ?", userID).Scan(&password)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", errors.New("usuário não encontrado")
+		}
+		return "", err
+	}
+
+	return password, nil
+}
+
+// Atualiza a senha do usuário
+func (u UserRepository) UpdatePassword(userID uint64, newPassword string) error {
+	result, err := u.db.Exec("UPDATE users SET password = ? WHERE id = ?", newPassword, userID)
+	if err != nil {
+		return fmt.Errorf("erro ao atualizar senha: %w", err)
+	}
+
+	// Verifica se realmente atualizou
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("erro ao verificar atualização da senha: %w", err)
+	}
+
+	if rows == 0 {
+		return errors.New("usuário não encontrado")
+	}
+
+	return nil
+}

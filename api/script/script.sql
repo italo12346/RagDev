@@ -10,7 +10,7 @@ CREATE TABLE if not exists users (
 )Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE followers (
-    user_id BIGINT NOT NULL,
+    author_id BIGINT NOT NULL,
     follows_id BIGINT NOT NULL,
 
     FOREIGN KEY (user_id)
@@ -20,4 +20,31 @@ CREATE TABLE followers (
         REFERENCES users(id) ON DELETE CASCADE,
 
     PRIMARY KEY (user_id, follows_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Tabela de posts
+CREATE TABLE IF NOT EXISTS posts (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(100) NOT NULL,
+    content TEXT NOT NULL,
+    author_id BIGINT UNSIGNED NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (author_id)
+        REFERENCES users(id) ON DELETE CASCADE
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Tabela de likes
+
+CREATE TABLE IF NOT EXISTS likes (
+    user_id BIGINT UNSIGNED NOT NULL,
+    post_id BIGINT UNSIGNED NOT NULL,
+
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (user_id, post_id),
+
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

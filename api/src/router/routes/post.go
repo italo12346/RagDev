@@ -24,12 +24,12 @@ var routesPost = []Route{
 		Function:       controllers.GetPostByID,
 		Authentication: true,
 	},
-	// {
-	// 	Uri:            "/posts/{postId}",
-	// 	Method:         http.MethodPut,
-	// 	Function:       controllers.UpdatePost,
-	// 	Authentication: true,
-	// },
+	{
+		Uri:            "/posts/{postId}",
+		Method:         http.MethodPut,
+		Function:       controllers.UpdatePost,
+		Authentication: true,
+	},
 	{
 		Uri:            "/posts/{postId}",
 		Method:         http.MethodDelete,

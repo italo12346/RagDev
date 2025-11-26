@@ -107,7 +107,17 @@ func (r PostsRepository) GetByID(postID uint64) (model.Post, error) {
 	return post, nil
 }
 
+// Atualiza post
 func (r PostsRepository) Update(postID uint64, post model.Post) error {
+	statement, err := r.db.Prepare("UPDATE posts SET title = ?, content = ? WHERE id = ?")
+	if err != nil {
+		return err
+	}
+	defer statement.Close()
+	_, err = statement.Exec(post.Title, post.Content, postID)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

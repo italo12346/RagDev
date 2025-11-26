@@ -34,8 +34,12 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 🔥 Define o author_id corretamente
 	post.AuthorID = userID
+
+	if err = post.Prepare(); err != nil {
+		http.Error(w, "Erro ao validar post: "+err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	db, err := database.Connect()
 	if err != nil {

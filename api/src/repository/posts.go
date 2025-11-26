@@ -72,6 +72,41 @@ func (r PostsRepository) GetAll() ([]model.Post, error) {
 }
 
 // Buscar post por ID
+func (r PostsRepository) GetByID(postID uint64) (model.Post, error) {
+	query := `
+        SELECT 
+            p.id, 
+            p.title, 
+            p.content, 
+            p.author_id, 
+            u.nick AS author_nickname,
+            p.createdAt        -- CORRIGIDO
+        FROM posts p
+        LEFT JOIN users u ON u.id = p.author_id
+        WHERE p.id = ?
+        LIMIT 1
+    `
+
+	row := r.db.QueryRow(query, postID)
+
+	var post model.Post
+
+	err := row.Scan(
+		&post.ID,
+		&post.Title,
+		&post.Content,
+		&post.AuthorID,
+		&post.AuthorNickname,
+		&post.CreatedAt,
+	)
+
+	if err != nil {
+		return model.Post{}, err
+	}
+
+	return post, nil
+}
+
 func (r PostsRepository) Update(postID uint64, post model.Post) error {
 	return nil
 }

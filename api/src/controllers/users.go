@@ -16,6 +16,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// Cria um novo usuário
 func CreateUser(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
@@ -52,6 +53,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
+// Busca todos os usuários
 func GetUsers(w http.ResponseWriter, r *http.Request) {
 	nameOrNick := r.URL.Query().Get("user")
 
@@ -83,6 +85,7 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(users)
 }
 
+// Busca um usuário pelo ID
 func GetByID(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	userID, err := strconv.ParseUint(params["userId"], 10, 64)
@@ -119,6 +122,7 @@ func GetByID(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
+// Atualiza os dados de um usuário
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	userID, err := strconv.ParseUint(params["userId"], 10, 64)
@@ -177,6 +181,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
+// Deleta um usuário
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
@@ -254,6 +259,7 @@ func Follow(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Usuario seguido com sucesso"))
 }
 
+// Permite que um usuário deixe de seguir outro
 func Unfollow(w http.ResponseWriter, r *http.Request) {
 	followedId, err := auth.ExtractUserID(r)
 	if err != nil {

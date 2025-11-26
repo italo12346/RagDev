@@ -12,7 +12,7 @@ type UserRepository struct {
 	db *sql.DB
 }
 
-// cria um novo repositório de usuários
+// Cria um novo repositório de usuários
 func NewUserRepository(db *sql.DB) *UserRepository {
 	return &UserRepository{db}
 }
@@ -156,8 +156,6 @@ func (u UserRepository) Delete(id uint64) error {
 }
 
 // Busca um usuário pelo email
-// FindByEmail busca um usuário pelo email.
-// Retorna o usuário preenchido ou erro caso não exista.
 func (u UserRepository) FindByEmail(email string) (model.User, error) {
 	var user model.User
 

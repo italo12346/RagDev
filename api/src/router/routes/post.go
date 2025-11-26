@@ -30,12 +30,12 @@ var routesPost = []Route{
 	// 	Function:       controllers.UpdatePost,
 	// 	Authentication: true,
 	// },
-	// {
-	// 	Uri:            "/posts/{postId}",
-	// 	Method:         http.MethodDelete,
-	// 	Function:       controllers.DeletePost,
-	// 	Authentication: true,
-	// },
+	{
+		Uri:            "/posts/{postId}",
+		Method:         http.MethodDelete,
+		Function:       controllers.DeletePost,
+		Authentication: true,
+	},
 	{
 		Uri:            "/posts/{postId}/like",
 		Method:         http.MethodPost,

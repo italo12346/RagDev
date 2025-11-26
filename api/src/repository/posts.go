@@ -111,7 +111,15 @@ func (r PostsRepository) Update(postID uint64, post model.Post) error {
 	return nil
 }
 
+// Deletar post
 func (r PostsRepository) Delete(postID uint64) error {
+	query := "DELETE FROM posts WHERE id = ?"
+
+	_, err := r.db.Exec(query, postID)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

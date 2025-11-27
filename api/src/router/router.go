@@ -9,6 +9,10 @@ import (
 
 func Generate() *mux.Router {
 	r := mux.NewRouter()
+
 	r.Use(middleware.EnableCORS)
-	return routes.SettingRoutes(r)
+
+	routes.SettingRoutes(r)
+
+	return r
 }

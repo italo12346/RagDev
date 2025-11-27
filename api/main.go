@@ -2,6 +2,7 @@ package main
 
 import (
 	"api/src/config"
+	"api/src/middleware"
 	"api/src/router"
 	"fmt"
 	"log"
@@ -10,7 +11,11 @@ import (
 
 func main() {
 	config.LoadEnv()
+
 	r := router.Generate()
+
+	handler := middleware.EnableCORS(r)
+
 	fmt.Printf("Rodando api na porta %s\n", config.APIPort)
-	log.Fatal(http.ListenAndServe(":"+config.APIPort, r))
+	log.Fatal(http.ListenAndServe(":"+config.APIPort, handler))
 }

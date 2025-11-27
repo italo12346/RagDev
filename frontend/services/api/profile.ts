@@ -1,5 +1,9 @@
 import api from "./axios";
-
+interface UpdateUserPayload {
+  name?: string;
+  email?: string;
+  nick?: string;
+}
 export async function getUserProfile(userId: number) {
   try {
     const response = await api.get(`/users/${userId}`);
@@ -9,4 +13,9 @@ export async function getUserProfile(userId: number) {
     console.error("❌ Erro ao buscar perfil:", error);
     throw error;
   }
+}
+
+export async function updateUserProfile(userId: number, payload: UpdateUserPayload) {
+  const response = await api.put(`/users/${userId}`, payload);
+  return response.data;
 }

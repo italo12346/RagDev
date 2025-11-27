@@ -1,50 +1,40 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { login } from "@/services/api/auth";
+import { login as loginAPI } from "@/services/api/auth";
+import { useAuth } from "@/contexts/AuthContext";
 import { ERROR_MESSAGES } from "@/services/api/erros";
-import React, { startTransition } from "react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth(); // função do AuthContext
+
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Função genérica para inputs
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-  const getErrorMessage = (errorKey: string) => {
-    const map: Record<string, string> = {
-      INVALID_CREDENTIALS: ERROR_MESSAGES.INVALID_CREDENTIALS,
-      SERVER_ERROR: ERROR_MESSAGES.SERVER_ERROR,
-      LOGIN_FAILED: ERROR_MESSAGES.LOGIN_FAILED,
-    };
-    return map[errorKey] || ERROR_MESSAGES.LOGIN_FAILED;
-  };
+    try {
+      // Chama a API e retorna token
+      const token = await loginAPI(form.email, form.password);
 
- async function handleSubmit(e: React.FormEvent) {
-  e.preventDefault();
-  setError("");
-  setLoading(true);
+      // Atualiza o AuthContext
+      login(token);
 
-  try {
-    await login(form.email, form.password);
-
-    
-    startTransition(() => {
-      router.push("/");
-    });
-
-  } catch (err) {
-    if (err instanceof Error) setError(getErrorMessage(err.message));
-    else setError(ERROR_MESSAGES.LOGIN_FAILED);
-  } finally {
-    setLoading(false);
+      // Redireciona
+      router.push("/posts");
+    } catch (err: any) {
+      const message =
+        err.response?.data?.error || err.message || ERROR_MESSAGES.LOGIN_FAILED;
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   }
-}
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -59,34 +49,28 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label htmlFor="email" className="block mb-1 font-medium">
-              Email
-            </label>
+            <label className="block mb-1 font-medium">Email</label>
             <input
-              id="email"
-              name="email"
               type="email"
               required
-              disabled={loading}
               className="w-full p-3 rounded-lg bg-gray-100 dark:bg-gray-700 outline-none"
               value={form.email}
-              onChange={handleChange}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, email: e.target.value }))
+              }
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block mb-1 font-medium">
-              Senha
-            </label>
+            <label className="block mb-1 font-medium">Senha</label>
             <input
-              id="password"
-              name="password"
               type="password"
               required
-              disabled={loading}
               className="w-full p-3 rounded-lg bg-gray-100 dark:bg-gray-700 outline-none"
               value={form.password}
-              onChange={handleChange}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, password: e.target.value }))
+              }
             />
           </div>
 

@@ -8,62 +8,63 @@ import (
 var routeUsers = []Route{
 	{
 		Uri:            "/users",
-		Method:         http.MethodPost,
+		Methods:        []string{http.MethodPost, http.MethodOptions},
 		Function:       controllers.CreateUser,
 		Authentication: false,
 	},
 	{
 		Uri:            "/users",
-		Method:         http.MethodGet,
+		Methods:        []string{http.MethodGet, http.MethodOptions},
 		Function:       controllers.GetUsers,
 		Authentication: true,
 	},
 	{
 		Uri:            "/users/{userId}",
-		Method:         http.MethodGet,
+		Methods:        []string{http.MethodGet, http.MethodOptions},
 		Function:       controllers.GetByID,
 		Authentication: true,
 	},
 	{
 		Uri:            "/users/{userId}",
-		Method:         http.MethodPut,
+		Methods:        []string{http.MethodPut, http.MethodOptions},
 		Function:       controllers.UpdateUser,
 		Authentication: true,
 	},
 	{
 		Uri:            "/users/{userId}",
-		Method:         http.MethodDelete,
+		Methods:        []string{http.MethodDelete, http.MethodOptions},
 		Function:       controllers.DeleteUser,
 		Authentication: true,
 	},
-	// Seguidor
+
+	// SEGUIDORES
 	{
 		Uri:            "/user/{userId}/userFollowed",
-		Method:         http.MethodPost,
+		Methods:        []string{http.MethodPost, http.MethodOptions},
 		Function:       controllers.Follow,
 		Authentication: true,
 	},
 	{
 		Uri:            "/user/{userId}/unfollowed",
-		Method:         http.MethodPost,
+		Methods:        []string{http.MethodPost, http.MethodOptions},
 		Function:       controllers.Unfollow,
 		Authentication: true,
 	},
 	{
 		Uri:            "/user/{userId}/followers",
-		Method:         http.MethodGet,
+		Methods:        []string{http.MethodGet, http.MethodOptions},
 		Function:       controllers.GetFollowers,
 		Authentication: true,
 	},
 	{
 		Uri:            "/user/{userId}/following",
-		Method:         http.MethodGet,
+		Methods:        []string{http.MethodGet, http.MethodOptions},
 		Function:       controllers.GetFollowing,
 		Authentication: true,
 	},
 	{
 		Uri:            "/user/{userId}/password-update",
-		Method:         http.MethodPost,
+		Methods:        []string{http.MethodPost, http.MethodOptions},
 		Function:       controllers.UpdatePassword,
 		Authentication: true,
 	},

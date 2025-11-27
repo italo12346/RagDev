@@ -34,7 +34,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	storedUser, err := repository.FindByEmail(user.Email)
 	if err != nil {
-		http.Error(w, "Erro ao buscar usuário", http.StatusInternalServerError)
+		http.Error(w, "Erro ao buscar usuário", http.StatusUnauthorized)
 		return
 	}
 	securityErr := security.CheckPasswordHash(user.Password, storedUser.Password)

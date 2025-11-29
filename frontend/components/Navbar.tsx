@@ -2,18 +2,27 @@
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
+import { getUserProfile } from "@/services/api/profile";
 
 export default function Navbar() {
-  const { isLoggedIn, userName, logout } = useAuth();
-  const [hasMounted, setHasMounted] = useState(false);
+  const { isLoggedIn, userId, logout } = useAuth();
+  const [name, setName] = useState<string | null>(null);
 
-  // Evita hydration mismatch
+  // Buscar nome do usuário quando logado
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setHasMounted(true);
-  }, []);
+    if (!userId || !isLoggedIn) return;
 
-  if (!hasMounted) return null;
+    const fetchName = async () => {
+      try {
+        const data = await getUserProfile(userId);
+        setName(data.name);
+      } catch (err) {
+        console.error("Erro ao carregar nome:", err);
+      }
+    };
+
+    fetchName();
+  }, [userId, isLoggedIn]);
 
   return (
     <nav className="w-full border-b border-gray-200 dark:border-gray-800 bg-background text-foreground">
@@ -23,19 +32,15 @@ export default function Navbar() {
         </Link>
 
         <div className="flex gap-4 items-center">
-          {/* Mostrar Posts apenas se estiver logado */}
-          {isLoggedIn && (
-            <Link href="/posts" className="hover:underline">
-              Posts
-            </Link>
-          )}
+
 
           {isLoggedIn ? (
             <>
-              {/* Nome do usuário */}
-              {userName && <span className="font-medium">{userName}</span>}
+              {/* Nome vindo do backend */}
+              <Link href="/profile" className="hover:underline">
+                {name}
+              </Link>
 
-              {/* Botão Logout */}
               <button
                 onClick={logout}
                 className="hover:underline bg-transparent border-none cursor-pointer"

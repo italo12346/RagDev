@@ -98,41 +98,42 @@ func (u UserRepository) GetByID(id uint64) (model.User, error) {
 // Atualiza um usuário pelo ID
 func (u UserRepository) Update(id uint64, user model.User) error {
 
-	// 1️⃣ Verifica se o usuário existe
-	var exists bool
-	err := u.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)", id).Scan(&exists)
-	if err != nil {
-		return err
-	}
+	// Buscar dados atuais
+	var current model.User
+	err := u.db.QueryRow(`
+        SELECT name, nick, email, password 
+        FROM users WHERE id = ?
+    `, id).Scan(&current.Name, &current.Nick, &current.Email, &current.Password)
 
-	if !exists {
+	if err != nil {
 		return errors.New("usuário não encontrado")
 	}
 
-	// 2️⃣ Se NÃO enviar senha → manter a senha atual
+	// Se não enviaram email → mantém o atual
+	if user.Email == "" {
+		user.Email = current.Email
+	}
+
+	// Se não enviaram senha → mantém a atual
 	if user.Password == "" {
-		err := u.db.QueryRow("SELECT password FROM users WHERE id = ?", id).Scan(&user.Password)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				return errors.New("usuário não encontrado")
-			}
-			return err
-		}
+		user.Password = current.Password
 	}
 
-	// 3️⃣ Executa o UPDATE
 	query := `
-		UPDATE users 
-		SET name = ?, nick = ?, email = ?, password = ?
-		WHERE id = ?
-	`
+        UPDATE users 
+        SET name = ?, nick = ?, email = ?, password = ?
+        WHERE id = ?
+    `
 
-	_, err = u.db.Exec(query, user.Name, user.Nick, user.Email, user.Password, id)
-	if err != nil {
-		return err
-	}
+	_, err = u.db.Exec(query,
+		user.Name,
+		user.Nick,
+		user.Email,
+		user.Password,
+		id,
+	)
 
-	return nil
+	return err
 }
 
 // Deleta um usuário pelo ID

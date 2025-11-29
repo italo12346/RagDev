@@ -1,6 +1,7 @@
 package router
 
 import (
+	"api/src/middleware"
 	"api/src/router/routes"
 
 	"github.com/gorilla/mux"
@@ -8,5 +9,10 @@ import (
 
 func Generate() *mux.Router {
 	r := mux.NewRouter()
-	return routes.SettingRoutes(r)
+
+	r.Use(middleware.EnableCORS)
+
+	routes.SettingRoutes(r)
+
+	return r
 }

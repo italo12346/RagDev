@@ -19,18 +19,19 @@ type User struct {
 }
 
 func (u *User) Prepare(stage string) error {
+
+	// valida dado bruto
 	if err := u.validate(stage); err != nil {
 		return err
 	}
 
 	u.format()
 
-	// Update sem senha → não altera
+	// No update, só hashear senha se ela foi enviada
 	if stage == "update" && u.Password == "" {
 		return nil
 	}
 
-	// Se enviaram senha → hashear
 	if u.Password != "" {
 		hashed, err := security.HashPassword(u.Password)
 		if err != nil {
@@ -43,6 +44,28 @@ func (u *User) Prepare(stage string) error {
 }
 
 func (u *User) validate(stage string) error {
+
+	if stage == "create" {
+		if strings.TrimSpace(u.Email) == "" {
+			return errors.New("o email é obrigatório")
+		}
+		if err := checkmail.ValidateFormat(u.Email); err != nil {
+			return err
+		}
+		if len(u.Password) < 6 {
+			return errors.New("a senha deve conter pelo menos 6 caracteres")
+		}
+	}
+
+	// Update → só valida campos enviados
+	if stage == "update" {
+		if u.Email != "" {
+			if err := checkmail.ValidateFormat(u.Email); err != nil {
+				return err
+			}
+		}
+	}
+
 	if strings.TrimSpace(u.Name) == "" {
 		return errors.New("o nome é obrigatório")
 	}
@@ -51,25 +74,8 @@ func (u *User) validate(stage string) error {
 		return errors.New("o nick é obrigatório")
 	}
 
-	if strings.TrimSpace(u.Email) == "" {
-		return errors.New("o email é obrigatório")
-	}
-
-	if err := checkmail.ValidateFormat(u.Email); err != nil {
-		return err
-	}
-
-	if !strings.Contains(u.Email, "@") {
-		return errors.New("email inválido")
-	}
-
-	if stage == "create" && len(u.Password) < 6 {
-		return errors.New("a senha deve conter pelo menos 6 caracteres")
-	}
-
 	return nil
 }
-
 func (u *User) format() {
 	u.Name = strings.TrimSpace(u.Name)
 	u.Nick = strings.TrimSpace(u.Nick)

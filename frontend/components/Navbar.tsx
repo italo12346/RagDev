@@ -19,7 +19,7 @@ export default function Navbar() {
     <nav className="w-full border-b border-gray-200 dark:border-gray-800 bg-background text-foreground">
       <div className="max-w-4xl mx-auto flex items-center justify-between p-4">
         <Link href="/" className="text-xl font-bold">
-          RAGBank
+          RagDev
         </Link>
 
         <div className="flex gap-4 items-center">

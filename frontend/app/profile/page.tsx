@@ -5,6 +5,7 @@ import { jwtDecode } from "jwt-decode";
 import { getUserProfile, updateUserProfile } from "@/services/api/profile";
 import Modal from "@/components/Modal";
 import { changePassword } from "@/services/api/changePassword";
+import { useProtectedRoute } from "@/hooks/useProtectRoute";
 
 
 interface DecodedToken {
@@ -22,6 +23,7 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
+  useProtectedRoute();
   const [userData, setUserData] = useState<UserProfile | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Post } from "@/types/global";
 
 interface PostCardProps {
@@ -19,12 +20,23 @@ export default function PostCard({
   showActions = true,
   currentUserId,
 }: PostCardProps) {
+  const router = useRouter();
+
+  const goToProfile = () => {
+    if (post.author_id === currentUserId) {
+      router.push("/profile");
+    } else {
+      router.push(`/profile/${post.author_id}`);
+    }
+  };
+
   const renderAvatar = () => {
     if (post.author_photo_url) {
       return (
         <img
           src={post.author_photo_url}
-          className="w-10 h-10 rounded-full object-cover border"
+          className="w-10 h-10 rounded-full object-cover border cursor-pointer"
+          onClick={goToProfile}
         />
       );
     }
@@ -32,7 +44,10 @@ export default function PostCard({
     const letter = post.author_nickname?.[0]?.toUpperCase() ?? "?";
 
     return (
-      <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
+      <div
+        className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold cursor-pointer"
+        onClick={goToProfile}
+      >
         {letter}
       </div>
     );
@@ -43,7 +58,7 @@ export default function PostCard({
       {/* Cabeçalho */}
       <div className="flex items-center gap-3">
         {renderAvatar()}
-        <div>
+        <div className="cursor-pointer" onClick={goToProfile}>
           <p className="font-semibold">{post.author_nickname}</p>
           <p className="text-sm text-gray-500">
             {new Date(post.created_at).toLocaleString("pt-BR")}

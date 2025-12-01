@@ -180,27 +180,26 @@ func (u UserRepository) FindByEmail(email string) (model.User, error) {
 }
 
 // Permite que um usuário siga outro
-func (u UserRepository) Follow(followerID, userFollowedID uint64) error {
-	go fmt.Print(followerID, userFollowedID)
-	// 1 Verifica se o usuário seguido existe
+// Seguir usuário
+func (u UserRepository) Follow(followerID, followingID uint64) error {
+
+	// Verifica se usuário seguido existe
 	var exists bool
-	err := u.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)", userFollowedID).Scan(&exists)
+	err := u.db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)", followingID).Scan(&exists)
 	if err != nil {
 		return err
 	}
-
 	if !exists {
 		return errors.New("usuário a ser seguido não existe")
 	}
 
-	//  Verifica se já segue (evita duplicidade)
+	// Verifica se já segue
 	err = u.db.QueryRow(`
         SELECT EXISTS(
             SELECT 1 FROM followers 
-            WHERE follows_id = ? AND user_id = ?
+            WHERE follower_id = ? AND following_id = ?
         )
-    `, followerID, userFollowedID).Scan(&exists)
-
+    `, followerID, followingID).Scan(&exists)
 	if err != nil {
 		return err
 	}
@@ -209,47 +208,39 @@ func (u UserRepository) Follow(followerID, userFollowedID uint64) error {
 		return errors.New("você já está seguindo este usuário")
 	}
 
-	//  Executa follow
-	stmt, err := u.db.Prepare(`
-        INSERT INTO followers (follows_id, user_id)
+	// Inserir follow
+	_, err = u.db.Exec(`
+        INSERT INTO followers (follower_id, following_id)
         VALUES (?, ?)
-    `)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
+    `, followerID, followingID)
 
-	_, err = stmt.Exec(followerID, userFollowedID)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // Permite que um usuário pare de seguir outro
-func (u UserRepository) Unfollow(followerID, userUnfollowedID uint64) error {
-	stmt, err := u.db.Prepare("DELETE FROM followers WHERE follows_id = ? AND user_id = ?")
-	if err != nil {
-		return err
-	}
-
-	if _, err = stmt.Exec(followerID, userUnfollowedID); err != nil {
-		return err
-	}
-	defer stmt.Close()
-	return nil
+func (u UserRepository) Unfollow(followerID, followingID uint64) error {
+	_, err := u.db.Exec(`
+        DELETE FROM followers 
+        WHERE follower_id = ? AND following_id = ?
+    `, followerID, followingID)
+	return err
 }
 
 // Retorna os seguidores de um usuário
 func (u UserRepository) GetFollowers(userID uint64) ([]model.User, error) {
-	rows, err := u.db.Query(`SELECT u.id, u.name, u.nick, u.email, u.createdAt 
-		from users u inner join followers s on u.id = s.follows_id where s.user_id = ?`, userID)
+	rows, err := u.db.Query(`
+        SELECT u.id, u.name, u.nick, u.email, u.createdAt
+        FROM users u
+        INNER JOIN followers f ON u.id = f.follower_id
+        WHERE f.following_id = ?
+    `, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+
 	var followers []model.User
+
 	for rows.Next() {
 		var follower model.User
 		if err := rows.Scan(&follower.ID, &follower.Name, &follower.Nick, &follower.Email, &follower.CreatedAt); err != nil {
@@ -257,24 +248,25 @@ func (u UserRepository) GetFollowers(userID uint64) ([]model.User, error) {
 		}
 		followers = append(followers, follower)
 	}
+
 	return followers, nil
 }
 
 // Retorna quem um determinado usuario esta seguindo
 func (u UserRepository) GetFollowing(userID uint64) ([]model.User, error) {
 	rows, err := u.db.Query(`
-		SELECT u.id, u.name, u.nick, u.email, u.createdAt
-		FROM users u
-		INNER JOIN followers s ON u.id = s.follows_id
-		WHERE s.user_id = ?`,
-		userID,
-	)
+        SELECT u.id, u.name, u.nick, u.email, u.createdAt
+        FROM users u
+        INNER JOIN followers f ON u.id = f.following_id
+        WHERE f.follower_id = ?
+    `, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	var following []model.User
+
 	for rows.Next() {
 		var user model.User
 		if err := rows.Scan(&user.ID, &user.Name, &user.Nick, &user.Email, &user.CreatedAt); err != nil {
@@ -299,6 +291,17 @@ func (u UserRepository) GetPassword(userID uint64) (string, error) {
 	}
 
 	return password, nil
+}
+func (u UserRepository) IsFollowing(followerID, followingID uint64) (bool, error) {
+	var exists bool
+	err := u.db.QueryRow(`
+        SELECT EXISTS(
+            SELECT 1 FROM followers 
+            WHERE follower_id = ? AND following_id = ?
+        )
+    `, followerID, followingID).Scan(&exists)
+
+	return exists, err
 }
 
 // Atualiza a senha do usuário

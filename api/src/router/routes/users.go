@@ -63,6 +63,12 @@ var routeUsers = []Route{
 		Authentication: true,
 	},
 	{
+		Uri:            "/users/{userId}/is-following",
+		Methods:        []string{http.MethodGet, http.MethodOptions},
+		Function:       controllers.IsFollowing,
+		Authentication: true,
+	},
+	{
 		Uri:            "/user/{userId}/password-update",
 		Methods:        []string{http.MethodPost, http.MethodOptions},
 		Function:       controllers.UpdatePassword,

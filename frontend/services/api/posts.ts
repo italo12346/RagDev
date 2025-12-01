@@ -1,16 +1,6 @@
 import api from "./axios";
+import { Post } from "@/types/global";
 
-export interface Post {
-  id: number;
-  title: string;
-  content: string;
-  author_id: number;
-  author_nickname?: string;
-  author_photo_url?: string;
-  created_at: string;
-  likes?: number;
-  likedByMe?: boolean;
-}
 
 // Lista posts por usuário
 export async function getUserPosts(userId: number): Promise<Post[]> {
@@ -39,4 +29,12 @@ export async function unlikePost(postId: number) {
 // Deletar post
 export async function deletePost(postId: number) {
   await api.delete(`/posts/${postId}`);
+}
+// Atualizar post
+export async function updatePost(
+  postId: number,
+  data: { title: string; content: string }
+): Promise<Post> {
+  const response = await api.put(`/posts/${postId}`, data);
+  return response.data;
 }

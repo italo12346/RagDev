@@ -4,62 +4,64 @@ import { useProtectedRoute } from "@/hooks/useProtectRoute";
 import { useCallback, useEffect, useState } from "react";
 
 import {
+  getFollowers,
+  getFollowing,
   getUserPosts as getUserPostsProfile,
   getUserProfile,
   updateUserProfile,
-  getFollowers,
-  getFollowing
 } from "@/services/api/profile";
 
 import {
   updatePost as apiUpdatePost,
   deletePost,
   likePost,
-  unlikePost
+  unlikePost,
 } from "@/services/api/posts";
-
-import { changePassword, ChangePasswordPayload } from "@/services/api/changePassword";
 
 import Modal from "@/components/Modal";
 import ModalEditPost from "@/components/ModalEditPost";
 import PostCard from "@/components/PostsCard";
+import UserListModal from "@/components/UserListModal";
 
 import type { Post, UserProfile as UserProfileType } from "@/types/global";
 
 export default function ProfilePage() {
   useProtectedRoute();
 
-  // ----------------- STATES -----------------
   const [userData, setUserData] = useState<UserProfileType | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
+  // seguidores / seguindo
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
 
-  // Modal editar perfil
+  // listas para modais
+  const [followersList, setFollowersList] = useState<UserProfileType[]>([]);
+  const [followingList, setFollowingList] = useState<UserProfileType[]>([]);
+  const [followersModalOpen, setFollowersModalOpen] = useState(false);
+  const [followingModalOpen, setFollowingModalOpen] = useState(false);
+
+  // modal editar perfil
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editNick, setEditNick] = useState("");
   const [editEmail, setEditEmail] = useState("");
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
-  // Modal editar post
+  // modal editar post
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [isEditPostOpen, setIsEditPostOpen] = useState(false);
 
-  // Modal mudar senha
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
   // userId do token
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const decodedToken = token && token.includes(".") ? JSON.parse(atob(token.split(".")[1])) : null;
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const decodedToken =
+    token && token.includes(".") ? JSON.parse(atob(token.split(".")[1])) : null;
   const loggedUserId = decodedToken?.user_id ?? null;
 
-  // ----------------- FETCH PROFILE -----------------
+  // carregar perfil
   const fetchProfile = useCallback(async () => {
     if (!loggedUserId) return;
     try {
@@ -73,7 +75,7 @@ export default function ProfilePage() {
     }
   }, [loggedUserId]);
 
-  // ----------------- FETCH POSTS -----------------
+  // carregar posts
   const fetchPosts = useCallback(async () => {
     if (!loggedUserId) return;
     try {
@@ -87,11 +89,11 @@ export default function ProfilePage() {
     }
   }, [loggedUserId]);
 
-  // ----------------- FETCH FOLLOWERS/FOLLOWING -----------------
+  // carregar seguidores / seguindo
   useEffect(() => {
     if (!loggedUserId) return;
 
-    async function loadFollows() {
+    async function loadCounts() {
       try {
         const followers = await getFollowers(loggedUserId);
         const following = await getFollowing(loggedUserId);
@@ -103,16 +105,16 @@ export default function ProfilePage() {
       }
     }
 
-    loadFollows();
+    loadCounts();
   }, [loggedUserId]);
 
-  // ----------------- LOAD INITIAL DATA -----------------
+  // carregar tudo na inicialização
   useEffect(() => {
     fetchProfile();
     fetchPosts();
   }, [fetchProfile, fetchPosts]);
 
-  // ----------------- EDIT PROFILE -----------------
+  // abrir modal editar perfil
   const openEditProfile = () => {
     if (!userData) return;
     setEditName(userData.name ?? "");
@@ -121,6 +123,7 @@ export default function ProfilePage() {
     setIsEditProfileOpen(true);
   };
 
+  // salvar alterações perfil
   const handleSaveProfile = async () => {
     if (!userData) return;
 
@@ -133,7 +136,7 @@ export default function ProfilePage() {
       const updated = await updateUserProfile(userData.id, {
         name: editName,
         nick: editNick,
-        email: editEmail
+        email: editEmail,
       });
       setUserData(updated);
       setIsEditProfileOpen(false);
@@ -143,75 +146,54 @@ export default function ProfilePage() {
     }
   };
 
-  // ----------------- CHANGE PASSWORD -----------------
-  const handleChangePassword = async () => {
-    if (newPassword !== confirmPassword) {
-      alert("A nova senha e a confirmação não coincidem.");
-      return;
-    }
-
-    try {
-      if (!loggedUserId) return;
-
-      const payload: ChangePasswordPayload = {
-        OldPassword: currentPassword,
-        NewPassword: newPassword,
-      };
-
-      await changePassword(loggedUserId, payload);
-
-      alert("Senha alterada com sucesso!");
-      setIsPasswordModalOpen(false);
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (err) {
-      console.error("Erro ao alterar senha:", err);
-      alert("Erro ao alterar senha. Verifique a senha atual.");
-    }
-  };
-
-  // ----------------- POSTS ACTIONS -----------------
+  // like
   const handleLike = async (post: Post) => {
     try {
       if (post.likedByMe) {
         const res = await unlikePost(post.id);
-        setPosts(prev => prev.map(p => (
-          p.id === post.id ? { ...p, likes: res.likes, likedByMe: false } : p
-        )));
+        setPosts((prev) =>
+          prev.map((p) =>
+            p.id === post.id ? { ...p, likes: res.likes, likedByMe: false } : p
+          )
+        );
       } else {
         const res = await likePost(post.id);
-        setPosts(prev => prev.map(p => (
-          p.id === post.id ? { ...p, likes: res.likes, likedByMe: true } : p
-        )));
+        setPosts((prev) =>
+          prev.map((p) =>
+            p.id === post.id ? { ...p, likes: res.likes, likedByMe: true } : p
+          )
+        );
       }
     } catch (err) {
       console.error("Erro ao curtir post:", err);
     }
   };
 
+  // deletar
   const handleDelete = async (postId: number) => {
     if (!confirm("Deseja excluir este post?")) return;
     try {
       await deletePost(postId);
-      setPosts(prev => prev.filter(p => p.id !== postId));
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
     } catch (err) {
       console.error("Erro ao deletar post:", err);
     }
   };
 
+  // abrir modal editar post
   const handleEdit = (post: Post) => {
     setEditingPost(post);
     setIsEditPostOpen(true);
   };
 
+  // salvar alteração post
   const handleSavePostEdit = async (title: string, content: string) => {
     if (!editingPost) return;
     try {
       await apiUpdatePost(editingPost.id, { title, content });
 
-      setPosts(prev =>
-        prev.map(p =>
+      setPosts((prev) =>
+        prev.map((p) =>
           p.id === editingPost.id ? { ...p, title, content } : p
         )
       );
@@ -224,7 +206,6 @@ export default function ProfilePage() {
     }
   };
 
-  // ----------------- RENDER -----------------
   if (loadingProfile)
     return <p className="text-center mt-10">Carregando perfil...</p>;
 
@@ -233,7 +214,7 @@ export default function ProfilePage() {
 
   const initials = (userData.name ?? "??")
     .split(" ")
-    .map(n => n[0])
+    .map((n) => n[0])
     .join("")
     .toUpperCase();
 
@@ -241,7 +222,6 @@ export default function ProfilePage() {
     <>
       {/* PERFIL */}
       <div className="max-w-md mx-auto mt-10 bg-white dark:bg-gray-900 shadow-lg rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-        
         <div className="flex justify-center mb-4">
           <div className="w-24 h-24 rounded-full bg-blue-600 text-white text-3xl font-bold flex items-center justify-center">
             {initials}
@@ -251,21 +231,43 @@ export default function ProfilePage() {
         <h1 className="text-2xl font-bold text-center">{userData.name}</h1>
         <p className="text-center text-gray-500">@{userData.nick}</p>
 
+        {/* seguidores e seguindo */}
         <div className="mt-6 flex justify-center gap-10 text-center">
-          <div>
+          <div
+            onClick={async () => {
+              const followers = await getFollowers(loggedUserId);
+              setFollowersList(Array.isArray(followers) ? followers : []);
+              setFollowersModalOpen(true);
+            }}
+            className="cursor-pointer"
+          >
             <p className="text-xl font-bold">{followersCount}</p>
             <p className="text-gray-500">Seguidores</p>
           </div>
+
           <div className="w-px h-10 bg-gray-300"></div>
-          <div>
+
+          <div
+            onClick={async () => {
+              const following = await getFollowing(loggedUserId);
+              setFollowingList(Array.isArray(following) ? following : []);
+              setFollowingModalOpen(true);
+            }}
+            className="cursor-pointer"
+          >
             <p className="text-xl font-bold">{followingCount}</p>
             <p className="text-gray-500">Seguindo</p>
           </div>
         </div>
 
         <div className="mt-6 text-gray-700 dark:text-gray-300 space-y-2">
-          <p><strong>Email:</strong> {userData.email}</p>
-          <p><strong>Criado em:</strong> {new Date(userData.createdAt).toLocaleDateString("pt-BR")}</p>
+          <p>
+            <strong>Email:</strong> {userData.email}
+          </p>
+          <p>
+            <strong>Criado em:</strong>{" "}
+            {new Date(userData.createdAt).toLocaleDateString("pt-BR")}
+          </p>
         </div>
 
         <div className="mt-6 text-center">
@@ -287,7 +289,7 @@ export default function ProfilePage() {
         ) : posts.length === 0 ? (
           <p>Você ainda não publicou nenhum post.</p>
         ) : (
-          posts.map(post => (
+          posts.map((post) => (
             <PostCard
               key={post.id}
               post={post}
@@ -301,8 +303,11 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* MODAL EDITAR PERFIL */}
-      <Modal isOpen={isEditProfileOpen} onClose={() => setIsEditProfileOpen(false)}>
+      {/* MODAL PERFIL */}
+      <Modal
+        isOpen={isEditProfileOpen}
+        onClose={() => setIsEditProfileOpen(false)}
+      >
         <h2 className="text-xl font-bold mb-4">Editar Perfil</h2>
 
         <div className="space-y-4">
@@ -311,7 +316,7 @@ export default function ProfilePage() {
             <input
               className="w-full mt-1 p-2 border rounded-lg bg-gray-100 dark:bg-gray-800"
               value={editName}
-              onChange={e => setEditName(e.target.value)}
+              onChange={(e) => setEditName(e.target.value)}
             />
           </div>
 
@@ -320,7 +325,7 @@ export default function ProfilePage() {
             <input
               className="w-full mt-1 p-2 border rounded-lg bg-gray-100 dark:bg-gray-800"
               value={editNick}
-              onChange={e => setEditNick(e.target.value)}
+              onChange={(e) => setEditNick(e.target.value)}
             />
           </div>
 
@@ -329,7 +334,7 @@ export default function ProfilePage() {
             <input
               className="w-full mt-1 p-2 border rounded-lg bg-gray-100 dark:bg-gray-800"
               value={editEmail}
-              onChange={e => setEditEmail(e.target.value)}
+              onChange={(e) => setEditEmail(e.target.value)}
             />
           </div>
 
@@ -352,50 +357,18 @@ export default function ProfilePage() {
         </div>
 
         <div className="flex justify-end mt-6 gap-2">
-          <button onClick={() => setIsEditProfileOpen(false)} className="px-4 py-2 border rounded-lg">Cancelar</button>
-          <button onClick={handleSaveProfile} className="px-4 py-2 bg-blue-600 text-white rounded-lg">Salvar</button>
-        </div>
-      </Modal>
-
-      {/* MODAL MUDAR SENHA */}
-      <Modal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)}>
-        <h2 className="text-xl font-bold mb-4">Alterar Senha</h2>
-
-        <div className="space-y-4">
-          <div>
-            <label className="font-medium">Senha Atual</label>
-            <input
-              type="password"
-              className="w-full mt-1 p-2 border rounded-lg bg-gray-100 dark:bg-gray-800"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="font-medium">Nova Senha</label>
-            <input
-              type="password"
-              className="w-full mt-1 p-2 border rounded-lg bg-gray-100 dark:bg-gray-800"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="font-medium">Confirmar Nova Senha</label>
-            <input
-              type="password"
-              className="w-full mt-1 p-2 border rounded-lg bg-gray-100 dark:bg-gray-800"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end mt-6 gap-2">
-          <button onClick={() => setIsPasswordModalOpen(false)} className="px-4 py-2 border rounded-lg">Cancelar</button>
-          <button onClick={handleChangePassword} className="px-4 py-2 bg-blue-600 text-white rounded-lg">Salvar</button>
+          <button
+            onClick={() => setIsEditProfileOpen(false)}
+            className="px-4 py-2 border rounded-lg"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSaveProfile}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+          >
+            Salvar
+          </button>
         </div>
       </Modal>
 
@@ -412,6 +385,22 @@ export default function ProfilePage() {
           initialContent={editingPost.content}
         />
       )}
+
+      {/* MODAL SEGUIDORES */}
+      <UserListModal
+        isOpen={followersModalOpen}
+        onClose={() => setFollowersModalOpen(false)}
+        title="Seguidores"
+        users={followersList}
+      />
+
+      {/* MODAL SEGUINDO */}
+      <UserListModal
+        isOpen={followingModalOpen}
+        onClose={() => setFollowingModalOpen(false)}
+        title="Seguindo"
+        users={followingList}
+      />
     </>
   );
 }

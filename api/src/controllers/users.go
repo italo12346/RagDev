@@ -296,6 +296,40 @@ func Unfollow(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func IsFollowing(w http.ResponseWriter, r *http.Request) {
+	userID, err := auth.ExtractUserID(r)
+	if err != nil {
+		http.Error(w, "Token inválido", http.StatusUnauthorized)
+		return
+	}
+
+	params := mux.Vars(r)
+	otherID, err := strconv.ParseUint(params["userId"], 10, 64)
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	db, err := database.Connect()
+	if err != nil {
+		http.Error(w, "Erro ao conectar ao banco", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	repo := repository.NewUserRepository(db)
+
+	isFollowing, err := repo.IsFollowing(userID, otherID)
+	if err != nil {
+		http.Error(w, "Erro ao verificar follow", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]bool{
+		"isFollowing": isFollowing,
+	})
+}
+
 // Retorna os seguidores de um usuário(Quem te segue)
 func GetFollowers(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)

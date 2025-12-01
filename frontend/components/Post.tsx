@@ -8,10 +8,13 @@ import {
   deletePost,
   likePost,
   unlikePost,
-  Post,
+  updatePost as apiUpdatePost,
 } from "@/services/api/posts";
 import { decodeToken } from "@/utils/jwt";
 import ModalCreatePost from "@/components/CreatePostModal";
+import ModalEditPost from "@/components/ModalEditPost";
+import { Post } from "@/types/global";
+import PostCard from "./PostsCard";
 
 export default function Posts() {
   useProtectedRoute();
@@ -19,6 +22,7 @@ export default function Posts() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -30,6 +34,8 @@ export default function Posts() {
     try {
       setLoading(true);
       const data = await getUserPosts(decoded.user_id);
+      // DEBUG: descomente para inspecionar o payload
+      // console.log("posts recebidos:", data);
       setPosts(data);
     } catch (err) {
       console.error("Erro ao carregar posts:", err);
@@ -42,7 +48,7 @@ export default function Posts() {
     fetchPosts();
   }, []);
 
-  const updatePost = (id: number, changes: Partial<Post>) => {
+  const updatePostState = (id: number, changes: Partial<Post>) => {
     setPosts((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...changes } : p))
     );
@@ -62,10 +68,10 @@ export default function Posts() {
     try {
       if (post.likedByMe) {
         const res = await unlikePost(post.id);
-        updatePost(post.id, { likes: res.likes, likedByMe: false });
+        updatePostState(post.id, { likes: res.likes, likedByMe: false });
       } else {
         const res = await likePost(post.id);
-        updatePost(post.id, { likes: res.likes, likedByMe: true });
+        updatePostState(post.id, { likes: res.likes, likedByMe: true });
       }
     } catch (err) {
       console.error("Erro ao curtir:", err);
@@ -83,9 +89,22 @@ export default function Posts() {
     }
   };
 
-  // ------------------------------
-  // GERAR AVATAR Fallback
-  // ------------------------------
+  const handleEdit = (post: Post) => {
+    setEditingPost(post);
+  };
+
+  const handleUpdateSubmit = async (title: string, content: string) => {
+    if (!editingPost) return;
+
+    try {
+      await apiUpdatePost(editingPost.id, { title, content });
+      updatePostState(editingPost.id, { title, content });
+      setEditingPost(null);
+    } catch (err) {
+      console.error("Erro ao atualizar post:", err);
+    }
+  };
+
   const renderAvatar = (post: Post) => {
     if (post.author_photo_url)
       return (
@@ -107,7 +126,6 @@ export default function Posts() {
 
   return (
     <div className="mt-4 space-y-4">
-
       {/* CRIAR POST */}
       <button
         onClick={() => setIsModalOpen(true)}
@@ -122,62 +140,29 @@ export default function Posts() {
         onSubmit={handleCreatePost}
       />
 
+      {/* EDITAR POST */}
+      {editingPost && (
+        <ModalEditPost
+          key={editingPost.id}
+          isOpen={!!editingPost}
+          onClose={() => setEditingPost(null)}
+          onSubmit={handleUpdateSubmit}
+          initialTitle={editingPost.title}
+          initialContent={editingPost.content}
+        />
+      )}
+
       {/* LISTA */}
       {posts.map((post) => (
-        <div
-          key={post.id}
-          className="p-4 border rounded-xl bg-white dark:bg-gray-800 shadow-sm"
-        >
-          {/* Cabeçalho */}
-          <div className="flex items-center gap-3">
-            {renderAvatar(post)}
-
-            <div>
-              <p className="font-semibold">{post.author_nickname}</p>
-              <p className="text-sm text-gray-500">
-                {new Date(post.created_at).toLocaleString("pt-BR")}
-              </p>
-            </div>
-          </div>
-
-          {/* Conteúdo */}
-          <p className="mt-3 text-gray-800 dark:text-gray-200">
-            {post.content}
-          </p>
-
-          {/* AÇÕES */}
-          <div className="flex items-center justify-between mt-4">
-
-            {/* LIKE */}
-            <button
-              onClick={() => handleLike(post)}
-              className={`px-3 py-1 rounded-lg border ${
-                post.likedByMe
-                  ? "bg-blue-600 text-white"
-                  : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200"
-              }`}
-            >
-              👍 {post.likes ?? 0}
-            </button>
-
-            {/* EDITAR / EXCLUIR */}
-            {decoded?.user_id === post.author_id && (
-              <div className="flex gap-2">
-                <button className="px-3 py-1 bg-yellow-500 text-white rounded-lg">
-                  Editar
-                </button>
-
-                <button
-                  onClick={() => handleDelete(post.id)}
-                  className="px-3 py-1 bg-red-600 text-white rounded-lg"
-                >
-                  Excluir
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      ))}
+  <PostCard
+    key={post.id}
+    post={post}
+    onLike={handleLike}
+    onEdit={handleEdit}
+    onDelete={handleDelete}
+    currentUserId={decoded?.user_id}
+  />
+))}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -6,22 +7,26 @@ import { getUserProfile } from "@/services/api/profile";
 import { searchUsers } from "@/services/api/search";
 import { useRouter } from "next/navigation";
 
+/* ------------------------ COMPONENTE: UserSearch ------------------------ */
+
 function UserSearch({
   search,
   setSearch,
   results,
   setResults,
+  userId, // ← ID do usuário logado
 }: {
   search: string;
   setSearch: (value: string) => void;
   results: { id: number; name: string; nick: string }[];
   setResults: (value: { id: number; name: string; nick: string }[]) => void;
+  userId: number | null; // ← ADICIONADO
 }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Busca com debounce
+  // Debounce da busca
   useEffect(() => {
     if (!search.trim()) {
       setResults([]);
@@ -44,10 +49,13 @@ function UserSearch({
     };
   }, [search, setResults]);
 
-  // Fechar dropdown ao clicar fora
+  // Fechar ao clicar fora
   const handleClickOutside = useCallback(
     (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setResults([]);
       }
     },
@@ -58,6 +66,18 @@ function UserSearch({
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, [handleClickOutside]);
+
+  // Quando clicar em um usuário
+  const handleSelectUser = (id: number) => {
+    if (id === userId) {
+      router.push("/profile"); // ← PERFIL DO LOGADO
+    } else {
+      router.push(`/profile/${id}`); // ← PERFIL DE OUTRO USUÁRIO
+    }
+
+    setSearch("");
+    setResults([]);
+  };
 
   return (
     <div className="relative w-full" ref={containerRef}>
@@ -77,13 +97,10 @@ function UserSearch({
           {results.map((user) => (
             <li
               key={user.id}
+              // eslint-disable-next-line jsx-a11y/role-has-required-aria-props
               role="option"
               className="px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
-              onClick={() => {
-                router.push(`/profile/${user.id}`);
-                setSearch("");
-                setResults([]);
-              }}
+              onClick={() => handleSelectUser(user.id)}
             >
               {user.name} @{user.nick}
             </li>
@@ -94,12 +111,17 @@ function UserSearch({
   );
 }
 
+/* ---------------------------- COMPONENTE NAVBAR ---------------------------- */
+
 export default function Navbar() {
   const { isLoggedIn, userId, logout } = useAuth();
   const [name, setName] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [results, setResults] = useState<{ id: number; name: string; nick: string }[]>([]);
-    const isClient = useRef(false);
+  const [results, setResults] = useState<
+    { id: number; name: string; nick: string }[]
+  >([]);
+
+  const isClient = useRef(false);
   useEffect(() => {
     isClient.current = true;
   }, []);
@@ -119,8 +141,10 @@ export default function Navbar() {
 
     fetchName();
   }, [userId, isLoggedIn]);
+
   // eslint-disable-next-line react-hooks/refs
   if (!isClient.current) return null;
+
   return (
     <nav className="w-full border-b border-gray-200 dark:border-gray-800 bg-background text-foreground">
       <div className="max-w-4xl mx-auto flex items-center justify-between p-4 gap-8">
@@ -135,6 +159,7 @@ export default function Navbar() {
               setSearch={setSearch}
               results={results}
               setResults={setResults}
+              userId={userId} // ← PASSANDO CORRETAMENTE
             />
           )}
 

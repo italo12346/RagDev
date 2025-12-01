@@ -3,6 +3,7 @@ package repository
 import (
 	"api/src/model"
 	"database/sql"
+	"time"
 )
 
 type PostsRepository struct {
@@ -32,37 +33,59 @@ func (r PostsRepository) Create(post model.Post) (uint64, error) {
 	return uint64(postID), nil
 }
 
-func (r PostsRepository) GetAll() ([]model.Post, error) {
+func (r PostsRepository) GetAll(userID uint64) ([]map[string]interface{}, error) {
 	rows, err := r.db.Query(`
         SELECT 
-            p.id, 
-            p.title, 
-            p.content, 
+            p.id,
+            p.title,
+            p.content,
             p.author_id,
             u.nick AS author_nickname,
-            p.createdAt 
+            p.createdAt,
+            COUNT(l.post_id) AS likes,
+            EXISTS(
+                SELECT 1 FROM likes WHERE user_id = ? AND post_id = p.id
+            ) AS likedByUser
         FROM posts p
-        INNER JOIN users u ON u.id = p.author_id
+        LEFT JOIN users u ON u.id = p.author_id
+        LEFT JOIN likes l ON l.post_id = p.id
+        GROUP BY p.id
         ORDER BY p.createdAt DESC
-    `)
+    `, userID)
+
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var posts []model.Post
+	var posts []map[string]interface{}
 
 	for rows.Next() {
-		var post model.Post
-		if err := rows.Scan(
-			&post.ID,
-			&post.Title,
-			&post.Content,
-			&post.AuthorID,
-			&post.AuthorNickname,
-			&post.CreatedAt,
-		); err != nil {
+		var (
+			id             uint64
+			title          string
+			content        string
+			authorId       uint64
+			authorNickname string
+			createdAt      time.Time
+			likes          uint64
+			likedByUser    bool
+		)
+
+		err := rows.Scan(&id, &title, &content, &authorId, &authorNickname, &createdAt, &likes, &likedByUser)
+		if err != nil {
 			return nil, err
+		}
+
+		post := map[string]interface{}{
+			"id":              id,
+			"title":           title,
+			"content":         content,
+			"author_id":       authorId,
+			"author_nickname": authorNickname,
+			"created_at":      createdAt,
+			"likes":           likes,
+			"likedByUser":     likedByUser,
 		}
 
 		posts = append(posts, post)

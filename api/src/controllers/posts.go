@@ -71,8 +71,10 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
+	userID := r.Context().Value("userID").(uint64)
+
 	repo := repository.NewPostsRepository(db)
-	posts, err := repo.GetAll()
+	posts, err := repo.GetAll(userID)
 	if err != nil {
 		http.Error(w, "Erro ao buscar posts", http.StatusInternalServerError)
 		return

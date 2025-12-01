@@ -2,25 +2,29 @@ package middleware
 
 import (
 	"api/src/auth"
-	"fmt"
+	"context"
 	"net/http"
 )
 
-func Logger(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("Requisição recebida: %s %s\n", r.Method, r.URL.Path)
-		next.ServeHTTP(w, r)
-	}
-}
-
-// Authenticate é um middleware que verifica se o usuário está autenticado
 func Authenticate(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Verifica se o token é válido
 		if err := auth.TokenValidate(r); err != nil {
 			http.Error(w, "Acesso não autorizado", http.StatusUnauthorized)
 			return
 		}
 
-		next.ServeHTTP(w, r)
+		// Extrai o ID do usuário do token
+		userID, err := auth.ExtractUserID(r)
+		if err != nil {
+			http.Error(w, "Erro ao identificar usuário", http.StatusUnauthorized)
+			return
+		}
+
+		// Coloca no contexto
+		ctx := context.WithValue(r.Context(), "userID", userID)
+
+		// Continua com a requisição
+		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }

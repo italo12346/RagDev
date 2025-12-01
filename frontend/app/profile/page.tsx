@@ -20,6 +20,7 @@ import {
 
 import Modal from "@/components/Modal";
 import ModalEditPost from "@/components/ModalEditPost";
+import ModalChangePassword from "@/components/ChangePasswordModal";
 import PostCard from "@/components/PostsCard";
 import UserListModal from "@/components/UserListModal";
 
@@ -37,25 +38,26 @@ export default function ProfilePage() {
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
 
-  // listas para modais
+  // listas de usuários
   const [followersList, setFollowersList] = useState<UserProfileType[]>([]);
   const [followingList, setFollowingList] = useState<UserProfileType[]>([]);
   const [followersModalOpen, setFollowersModalOpen] = useState(false);
   const [followingModalOpen, setFollowingModalOpen] = useState(false);
 
-  // modal editar perfil
+  // editar perfil
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editNick, setEditNick] = useState("");
   const [editEmail, setEditEmail] = useState("");
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
-  // modal editar post
+  // modal alterar senha
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+
+  // editar post
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [isEditPostOpen, setIsEditPostOpen] = useState(false);
 
-  // userId do token
+  // token
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const decodedToken =
@@ -109,7 +111,7 @@ export default function ProfilePage() {
     loadCounts();
   }, [loggedUserId]);
 
-  // carregar tudo na inicialização
+  // carregar tudo
   useEffect(() => {
     fetchProfile();
     fetchPosts();
@@ -124,7 +126,7 @@ export default function ProfilePage() {
     setIsEditProfileOpen(true);
   };
 
-  // salvar alterações perfil
+  // salvar alterações
   const handleSaveProfile = async () => {
     if (!userData) return;
 
@@ -147,7 +149,7 @@ export default function ProfilePage() {
     }
   };
 
-  // like
+  // like / unlike
   const handleLike = async (post: Post) => {
     try {
       if (post.likedByMe) {
@@ -166,7 +168,7 @@ export default function ProfilePage() {
         );
       }
     } catch (err) {
-      console.error("Erro ao curtir post:", err);
+      console.error("Erro ao curtir/descurtir:", err);
     }
   };
 
@@ -181,13 +183,13 @@ export default function ProfilePage() {
     }
   };
 
-  // abrir modal editar post
+  // abrir edição de post
   const handleEdit = (post: Post) => {
     setEditingPost(post);
     setIsEditPostOpen(true);
   };
 
-  // salvar alteração post
+  // salvar edição de post
   const handleSavePostEdit = async (title: string, content: string) => {
     if (!editingPost) return;
     try {
@@ -203,7 +205,7 @@ export default function ProfilePage() {
       setEditingPost(null);
     } catch (err) {
       console.error("Erro ao atualizar post:", err);
-      alert("Erro ao atualizar post.");
+      alert("Erro ao atualizar o post.");
     }
   };
 
@@ -348,7 +350,7 @@ export default function ProfilePage() {
                 disabled
               />
               <button
-                onClick={() => setIsPasswordModalOpen(true)}
+                onClick={() => setIsChangePasswordOpen(true)}
                 className="px-3 py-2 bg-blue-600 text-white rounded-lg mt-1"
               >
                 Alterar
@@ -372,6 +374,13 @@ export default function ProfilePage() {
           </button>
         </div>
       </Modal>
+
+      {/* MODAL ALTERAR SENHA */}
+      <ModalChangePassword
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
+        userId={loggedUserId}
+      />
 
       {/* MODAL EDITAR POST */}
       {editingPost && (

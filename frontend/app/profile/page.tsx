@@ -7,6 +7,8 @@ import {
   getUserPosts as getUserPostsProfile,
   getUserProfile,
   updateUserProfile,
+  getFollowers,
+  getFollowing
 } from "@/services/api/profile";
 
 import {
@@ -16,10 +18,7 @@ import {
   unlikePost
 } from "@/services/api/posts";
 
-import {
-  getFollowers,
-  getFollowing
-} from "@/services/api/profile";
+import { changePassword, ChangePasswordPayload } from "@/services/api/changePassword";
 
 import Modal from "@/components/Modal";
 import ModalEditPost from "@/components/ModalEditPost";
@@ -30,34 +29,37 @@ import type { Post, UserProfile as UserProfileType } from "@/types/global";
 export default function ProfilePage() {
   useProtectedRoute();
 
+  // ----------------- STATES -----------------
   const [userData, setUserData] = useState<UserProfileType | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
-  // seguidores / seguindo
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
 
-  // modal editar perfil
+  // Modal editar perfil
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [editNick, setEditNick] = useState("");
   const [editEmail, setEditEmail] = useState("");
 
-  // modal editar post
+  // Modal editar post
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [isEditPostOpen, setIsEditPostOpen] = useState(false);
 
+  // Modal mudar senha
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   // userId do token
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const decodedToken =
-    token && token.includes(".")
-      ? JSON.parse(atob(token.split(".")[1]))
-      : null;
+  const decodedToken = token && token.includes(".") ? JSON.parse(atob(token.split(".")[1])) : null;
   const loggedUserId = decodedToken?.user_id ?? null;
 
-  // carregar perfil
+  // ----------------- FETCH PROFILE -----------------
   const fetchProfile = useCallback(async () => {
     if (!loggedUserId) return;
     try {
@@ -71,7 +73,7 @@ export default function ProfilePage() {
     }
   }, [loggedUserId]);
 
-  // carregar posts
+  // ----------------- FETCH POSTS -----------------
   const fetchPosts = useCallback(async () => {
     if (!loggedUserId) return;
     try {
@@ -85,7 +87,7 @@ export default function ProfilePage() {
     }
   }, [loggedUserId]);
 
-  // carregar seguidores / seguindo
+  // ----------------- FETCH FOLLOWERS/FOLLOWING -----------------
   useEffect(() => {
     if (!loggedUserId) return;
 
@@ -96,7 +98,6 @@ export default function ProfilePage() {
 
         setFollowersCount(followers.length ?? 0);
         setFollowingCount(following.length ?? 0);
-
       } catch (err) {
         console.error("Erro ao buscar seguidores/seguindo:", err);
       }
@@ -105,13 +106,13 @@ export default function ProfilePage() {
     loadFollows();
   }, [loggedUserId]);
 
-  // carregar tudo na inicialização
+  // ----------------- LOAD INITIAL DATA -----------------
   useEffect(() => {
     fetchProfile();
     fetchPosts();
   }, [fetchProfile, fetchPosts]);
 
-  // abrir modal editar perfil
+  // ----------------- EDIT PROFILE -----------------
   const openEditProfile = () => {
     if (!userData) return;
     setEditName(userData.name ?? "");
@@ -120,7 +121,6 @@ export default function ProfilePage() {
     setIsEditProfileOpen(true);
   };
 
-  // salvar alterações perfil
   const handleSaveProfile = async () => {
     if (!userData) return;
 
@@ -143,7 +143,35 @@ export default function ProfilePage() {
     }
   };
 
-  // like
+  // ----------------- CHANGE PASSWORD -----------------
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      alert("A nova senha e a confirmação não coincidem.");
+      return;
+    }
+
+    try {
+      if (!loggedUserId) return;
+
+      const payload: ChangePasswordPayload = {
+        OldPassword: currentPassword,
+        NewPassword: newPassword,
+      };
+
+      await changePassword(loggedUserId, payload);
+
+      alert("Senha alterada com sucesso!");
+      setIsPasswordModalOpen(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      console.error("Erro ao alterar senha:", err);
+      alert("Erro ao alterar senha. Verifique a senha atual.");
+    }
+  };
+
+  // ----------------- POSTS ACTIONS -----------------
   const handleLike = async (post: Post) => {
     try {
       if (post.likedByMe) {
@@ -162,7 +190,6 @@ export default function ProfilePage() {
     }
   };
 
-  // deletar
   const handleDelete = async (postId: number) => {
     if (!confirm("Deseja excluir este post?")) return;
     try {
@@ -173,13 +200,11 @@ export default function ProfilePage() {
     }
   };
 
-  // abrir modal editar post
   const handleEdit = (post: Post) => {
     setEditingPost(post);
     setIsEditPostOpen(true);
   };
 
-  // salvar alteração post
   const handleSavePostEdit = async (title: string, content: string) => {
     if (!editingPost) return;
     try {
@@ -199,18 +224,18 @@ export default function ProfilePage() {
     }
   };
 
+  // ----------------- RENDER -----------------
   if (loadingProfile)
     return <p className="text-center mt-10">Carregando perfil...</p>;
 
   if (!userData)
     return <p className="text-center mt-10">Usuário não encontrado.</p>;
 
-  const initials =
-    (userData.name ?? "??")
-      .split(" ")
-      .map(n => n[0])
-      .join("")
-      .toUpperCase();
+  const initials = (userData.name ?? "??")
+    .split(" ")
+    .map(n => n[0])
+    .join("")
+    .toUpperCase();
 
   return (
     <>
@@ -226,15 +251,12 @@ export default function ProfilePage() {
         <h1 className="text-2xl font-bold text-center">{userData.name}</h1>
         <p className="text-center text-gray-500">@{userData.nick}</p>
 
-        {/* seguidores e seguindo */}
         <div className="mt-6 flex justify-center gap-10 text-center">
           <div>
             <p className="text-xl font-bold">{followersCount}</p>
             <p className="text-gray-500">Seguidores</p>
           </div>
-
           <div className="w-px h-10 bg-gray-300"></div>
-
           <div>
             <p className="text-xl font-bold">{followingCount}</p>
             <p className="text-gray-500">Seguindo</p>
@@ -279,7 +301,7 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* MODAL PERFIL */}
+      {/* MODAL EDITAR PERFIL */}
       <Modal isOpen={isEditProfileOpen} onClose={() => setIsEditProfileOpen(false)}>
         <h2 className="text-xl font-bold mb-4">Editar Perfil</h2>
 
@@ -310,11 +332,70 @@ export default function ProfilePage() {
               onChange={e => setEditEmail(e.target.value)}
             />
           </div>
+
+          <div>
+            <label className="font-medium">Senha</label>
+            <div className="flex gap-2">
+              <input
+                className="w-full mt-1 p-2 border rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500"
+                value="********"
+                disabled
+              />
+              <button
+                onClick={() => setIsPasswordModalOpen(true)}
+                className="px-3 py-2 bg-blue-600 text-white rounded-lg mt-1"
+              >
+                Alterar
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-end mt-6 gap-2">
           <button onClick={() => setIsEditProfileOpen(false)} className="px-4 py-2 border rounded-lg">Cancelar</button>
           <button onClick={handleSaveProfile} className="px-4 py-2 bg-blue-600 text-white rounded-lg">Salvar</button>
+        </div>
+      </Modal>
+
+      {/* MODAL MUDAR SENHA */}
+      <Modal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)}>
+        <h2 className="text-xl font-bold mb-4">Alterar Senha</h2>
+
+        <div className="space-y-4">
+          <div>
+            <label className="font-medium">Senha Atual</label>
+            <input
+              type="password"
+              className="w-full mt-1 p-2 border rounded-lg bg-gray-100 dark:bg-gray-800"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="font-medium">Nova Senha</label>
+            <input
+              type="password"
+              className="w-full mt-1 p-2 border rounded-lg bg-gray-100 dark:bg-gray-800"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="font-medium">Confirmar Nova Senha</label>
+            <input
+              type="password"
+              className="w-full mt-1 p-2 border rounded-lg bg-gray-100 dark:bg-gray-800"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end mt-6 gap-2">
+          <button onClick={() => setIsPasswordModalOpen(false)} className="px-4 py-2 border rounded-lg">Cancelar</button>
+          <button onClick={handleChangePassword} className="px-4 py-2 bg-blue-600 text-white rounded-lg">Salvar</button>
         </div>
       </Modal>
 

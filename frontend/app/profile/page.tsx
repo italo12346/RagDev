@@ -48,6 +48,7 @@ export default function ProfilePage() {
   const [editName, setEditName] = useState("");
   const [editNick, setEditNick] = useState("");
   const [editEmail, setEditEmail] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
   // modal editar post

@@ -1,15 +1,25 @@
 "use client";
 
 import { UserProfile } from "@/types/global";
+import { useRouter } from "next/navigation";
 
 interface UserListModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   users: UserProfile[];
+  onFollowToggle?: (user: UserProfile) => void;
 }
 
-export default function UserListModal({ isOpen, onClose, title, users }: UserListModalProps) {
+export default function UserListModal({
+  isOpen,
+  onClose,
+  title,
+  users,
+  onFollowToggle
+}: UserListModalProps) {
+  const router = useRouter();
+
   if (!isOpen) return null;
 
   return (
@@ -28,14 +38,40 @@ export default function UserListModal({ isOpen, onClose, title, users }: UserLis
         ) : (
           <ul className="space-y-2 max-h-96 overflow-y-auto">
             {users.map((user) => (
-              <li key={user.id} className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-                <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center">
-                  {(user.name ?? "??").split(" ").map(n => n[0]).join("").toUpperCase()}
+              <li
+                key={user.id}
+                className="flex items-center justify-between gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg cursor-pointer"
+                onClick={() => router.push(`/profile/${user.id}`)} // 🔥 AQUI AJUSTADO
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center">
+                    {(user.name ?? "??")
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-medium">{user.name}</p>
+                    <p className="text-gray-500 text-sm">@{user.nick}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium">{user.name}</p>
-                  <p className="text-gray-500 text-sm">@{user.nick}</p>
-                </div>
+
+                {onFollowToggle && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // impede abrir perfil ao clicar no botão
+                      onFollowToggle(user);
+                    }}
+                    className={`px-3 py-1 rounded-lg text-sm ${
+                      user.isFollowed
+                        ? "bg-gray-300 text-gray-700 hover:bg-gray-400"
+                        : "bg-blue-600 text-white hover:bg-blue-700"
+                    }`}
+                  >
+                    {user.isFollowed ? "Seguindo" : "Seguir"}
+                  </button>
+                )}
               </li>
             ))}
           </ul>

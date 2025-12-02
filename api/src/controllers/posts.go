@@ -71,8 +71,10 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
+	userID := r.Context().Value("userID").(uint64)
+
 	repo := repository.NewPostsRepository(db)
-	posts, err := repo.GetAll()
+	posts, err := repo.GetAll(userID)
 	if err != nil {
 		http.Error(w, "Erro ao buscar posts", http.StatusInternalServerError)
 		return
@@ -249,17 +251,20 @@ func LikePost(w http.ResponseWriter, r *http.Request) {
 
 	repo := repository.NewPostsRepository(db)
 
+	// Tenta inserir like
 	if err := repo.LikePost(userID, postID); err != nil {
-		http.Error(w, "Erro ao curtir post", http.StatusInternalServerError)
+		http.Error(w, "Você já curtiu este post", http.StatusInternalServerError)
 		return
 	}
 
-	likes, _ := repo.CountLikes(postID)
+	// Busca post atualizado
+	updatedPost, err := repo.GetPostWithLikeInfo(userID, postID)
+	if err != nil {
+		http.Error(w, "Erro ao buscar post atualizado", http.StatusInternalServerError)
+		return
+	}
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message": "Post curtido com sucesso!",
-		"likes":   likes,
-	})
+	json.NewEncoder(w).Encode(updatedPost)
 }
 
 func UnlikePost(w http.ResponseWriter, r *http.Request) {
@@ -285,15 +290,18 @@ func UnlikePost(w http.ResponseWriter, r *http.Request) {
 
 	repo := repository.NewPostsRepository(db)
 
+	// Remove like
 	if err := repo.UnlikePost(userID, postID); err != nil {
 		http.Error(w, "Erro ao remover like", http.StatusInternalServerError)
 		return
 	}
 
-	likes, _ := repo.CountLikes(postID)
+	// Busca post atualizado
+	updatedPost, err := repo.GetPostWithLikeInfo(userID, postID)
+	if err != nil {
+		http.Error(w, "Erro ao buscar post atualizado", http.StatusInternalServerError)
+		return
+	}
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message": "Like removido com sucesso!",
-		"likes":   likes,
-	})
+	json.NewEncoder(w).Encode(updatedPost)
 }

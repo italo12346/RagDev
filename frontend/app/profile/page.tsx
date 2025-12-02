@@ -152,18 +152,18 @@ export default function ProfilePage() {
   // like / unlike
   const handleLike = async (post: Post) => {
     try {
-      if (post.likedByMe) {
+      if (post.likedByUser) {
         const res = await unlikePost(post.id);
         setPosts((prev) =>
           prev.map((p) =>
-            p.id === post.id ? { ...p, likes: res.likes, likedByMe: false } : p
+            p.id === post.id ? { ...p, likes: res.likes, likedByUser: false } : p
           )
         );
       } else {
         const res = await likePost(post.id);
         setPosts((prev) =>
           prev.map((p) =>
-            p.id === post.id ? { ...p, likes: res.likes, likedByMe: true } : p
+            p.id === post.id ? { ...p, likes: res.likes, likedByUser: true } : p
           )
         );
       }

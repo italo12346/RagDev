@@ -1,11 +1,9 @@
 // PostCard.jsx atualizado com verificação e mensagem de feedback
 "use client";
 
+import { Post } from "@/types/global";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Post } from "@/types/global";
-import { likePost, unlikePost } from "@/services/api/posts";
-import { like } from "@/types/global";
 
 interface PostCardProps {
   post: Post;
@@ -89,7 +87,7 @@ const handleLike = () => {
         <button
           onClick={handleLike}
           className={`px-3 py-1 rounded-lg border ${
-            post.likedByMe
+            post.likedByUser
               ? "bg-blue-600 text-white"
               : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200"
           }`}

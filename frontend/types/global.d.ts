@@ -26,8 +26,9 @@ export interface Post {
   author_photo_url?: string;
   created_at: string;
   likes?: number;
-  likedByMe?: boolean;
+  likedByUser?: boolean; 
 }
+
 interface Follower {
   id: number;
   name?: string;

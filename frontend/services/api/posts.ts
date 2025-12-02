@@ -1,3 +1,4 @@
+import axios from "axios";
 import api from "./axios";
 import { Post } from "@/types/global";
 
@@ -5,9 +6,15 @@ import { Post } from "@/types/global";
 // Lista posts por usuário
 export async function getUserPosts(userId: number): Promise<Post[]> {
   const response = await api.get(`/posts?authorId=${userId}`);
-  return Array.isArray(response.data) ? response.data : [];
-}
 
+  if (!Array.isArray(response.data)) return [];
+
+  // Normaliza o nome do campo vindo do backend
+  return response.data.map((post: Post) => ({
+    ...post,
+    likedByMe: post.likedByUser, // 👈 AQUI ESTÁ A CORREÇÃO!!!
+  }));
+}
 // Criar post
 export async function createPost(data: { title: string; content: string }): Promise<Post> {
   const response = await api.post("/posts", data);
@@ -16,8 +23,26 @@ export async function createPost(data: { title: string; content: string }): Prom
 
 // Curtir
 export async function likePost(postId: number) {
-  const response = await api.post(`/posts/${postId}/like`);
-  return response.data;
+  try {
+    const response = await api.post(`/posts/${postId}/like`);
+    return response.data;
+  } catch (err: unknown) {
+    console.error("Erro ao curtir:", err);
+
+    // Narrowing: verificar se é um erro do Axios
+    if (axios.isAxiosError(err)) {
+      const status = err.response?.status;
+
+      if (status === 500) {
+        return { message: "Você já curtiu este post." };
+      }
+
+      return { message: "Erro ao curtir o post. Tente novamente." };
+    }
+
+    // Caso seja algum outro tipo de erro desconhecido
+    return { message: "Erro inesperado ao curtir o post." };
+  }
 }
 
 // Remover like

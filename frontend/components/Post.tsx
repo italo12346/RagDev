@@ -66,12 +66,12 @@ export default function Posts() {
 
   const handleLike = async (post: Post) => {
     try {
-      if (post.likedByMe) {
+      if (post.likedByUser) {
         const res = await unlikePost(post.id);
-        updatePostState(post.id, { likes: res.likes, likedByMe: false });
+        updatePostState(post.id, { likes: res.likes, likedByUser: false });
       } else {
         const res = await likePost(post.id);
-        updatePostState(post.id, { likes: res.likes, likedByMe: true });
+        updatePostState(post.id, { likes: res.likes, likedByUser: true });
       }
     } catch (err) {
       console.error("Erro ao curtir:", err);

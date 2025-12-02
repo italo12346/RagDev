@@ -46,8 +46,9 @@ export default function ModalChangePassword({ isOpen, onClose, userId }: Props) 
         setConfirmPass("");
       }, 1000);
 
-    } catch (err: any) {
-      setErrorMsg(err.response?.data?.error || "Erro ao alterar a senha.");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
+      setErrorMsg(error.response?.data?.error || "Erro ao alterar a senha.");
     } finally {
       setLoading(false);
     }

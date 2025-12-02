@@ -174,3 +174,51 @@ func (r PostsRepository) CountLikes(postID uint64) (uint64, error) {
 	err := r.db.QueryRow("SELECT COUNT(*) FROM likes WHERE post_id = ?", postID).Scan(&total)
 	return total, err
 }
+func (r PostsRepository) GetPostWithLikeInfo(userID, postID uint64) (map[string]interface{}, error) {
+	row := r.db.QueryRow(`
+        SELECT 
+            p.id,
+            p.title,
+            p.content,
+            p.author_id,
+            u.nick AS author_nickname,
+            p.createdAt,
+            (SELECT COUNT(*) FROM likes WHERE post_id = p.id) AS likes,
+            EXISTS(
+                SELECT 1 FROM likes WHERE user_id = ? AND post_id = p.id
+            ) AS likedByUser
+        FROM posts p
+        LEFT JOIN users u ON u.id = p.author_id
+        WHERE p.id = ?
+        LIMIT 1
+    `, userID, postID)
+
+	var (
+		id             uint64
+		title          string
+		content        string
+		authorID       uint64
+		authorNickname string
+		createdAt      time.Time
+		likes          uint64
+		likedByUser    bool
+	)
+
+	err := row.Scan(&id, &title, &content, &authorID, &authorNickname, &createdAt, &likes, &likedByUser)
+	if err != nil {
+		return nil, err
+	}
+
+	post := map[string]interface{}{
+		"id":              id,
+		"title":           title,
+		"content":         content,
+		"author_id":       authorID,
+		"author_nickname": authorNickname,
+		"created_at":      createdAt,
+		"likes":           likes,
+		"likedByUser":     likedByUser,
+	}
+
+	return post, nil
+}

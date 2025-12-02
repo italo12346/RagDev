@@ -1,7 +1,11 @@
+// PostCard.jsx atualizado com verificação e mensagem de feedback
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Post } from "@/types/global";
+import { likePost, unlikePost } from "@/services/api/posts";
+import { like } from "@/types/global";
 
 interface PostCardProps {
   post: Post;
@@ -21,6 +25,7 @@ export default function PostCard({
   currentUserId,
 }: PostCardProps) {
   const router = useRouter();
+  const [feedback, setFeedback] = useState("");
 
   const goToProfile = () => {
     if (post.author_id === currentUserId) {
@@ -52,10 +57,12 @@ export default function PostCard({
       </div>
     );
   };
+const handleLike = () => {
+  onLike(post);
+};
 
   return (
     <div className="p-4 border rounded-xl bg-white dark:bg-gray-800 shadow-sm">
-      {/* Cabeçalho */}
       <div className="flex items-center gap-3">
         {renderAvatar()}
         <div className="cursor-pointer" onClick={goToProfile}>
@@ -66,20 +73,21 @@ export default function PostCard({
         </div>
       </div>
 
-      {/* Título */}
       {post.title && (
         <h2 className="mt-3 text-lg font-semibold text-gray-900 dark:text-gray-100">
           {post.title}
         </h2>
       )}
 
-      {/* Conteúdo */}
       <p className="mt-2 text-gray-800 dark:text-gray-200">{post.content}</p>
 
-      {/* Ações */}
+      {feedback && (
+        <p className="mt-2 text-sm text-blue-600 dark:text-blue-400">{feedback}</p>
+      )}
+
       <div className="flex items-center justify-between mt-4">
         <button
-          onClick={() => onLike(post)}
+          onClick={handleLike}
           className={`px-3 py-1 rounded-lg border ${
             post.likedByMe
               ? "bg-blue-600 text-white"

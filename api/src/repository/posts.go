@@ -10,8 +10,15 @@ type PostsRepository struct {
 	db *sql.DB
 }
 
+type CommentsRepository struct {
+	db *sql.DB
+}
+
 func NewPostsRepository(db *sql.DB) *PostsRepository {
 	return &PostsRepository{db}
+}
+func NewCommentsRepository(db *sql.DB) *CommentsRepository {
+	return &CommentsRepository{db}
 }
 
 func (r PostsRepository) Create(post model.Post) (uint64, error) {
@@ -221,4 +228,106 @@ func (r PostsRepository) GetPostWithLikeInfo(userID, postID uint64) (map[string]
 	}
 
 	return post, nil
+}
+
+// Criar comentário
+func (repo CommentsRepository) Create(comment model.Comment) (uint64, error) {
+	query := "INSERT INTO comments (post_id, author_id, content) VALUES (?, ?, ?)"
+	result, err := repo.db.Exec(query, comment.PostID, comment.AuthorID, comment.Content)
+
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return uint64(id), nil
+}
+
+// Deletar comentário
+func (repo CommentsRepository) Delete(commentID uint64) error {
+	_, err := repo.db.Exec("DELETE FROM comments WHERE id = ?", commentID)
+	return err
+}
+
+// Buscar autor do comentário
+func (repo CommentsRepository) GetAuthor(commentID uint64) (uint64, error) {
+	var authorID uint64
+	err := repo.db.QueryRow("SELECT author_id FROM comments WHERE id = ?", commentID).Scan(&authorID)
+	return authorID, err
+}
+
+// Listar comentários de um post
+func (repo CommentsRepository) ListComments(postID uint64) ([]model.CommentResponse, error) {
+	rows, err := repo.db.Query(`
+        SELECT 
+            c.id, c.content, c.createdAt,
+            u.id, u.name, u.nick
+        FROM comments c
+        JOIN users u ON u.id = c.author_id
+        WHERE c.post_id = ?
+        ORDER BY c.createdAt ASC
+    `, postID)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var comments []model.CommentResponse
+
+	for rows.Next() {
+		var c model.CommentResponse
+
+		err := rows.Scan(
+			&c.ID,
+			&c.Content,
+			&c.CreatedAt,
+			&c.Author.ID,
+			&c.Author.Name,
+			&c.Author.Nick,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		comments = append(comments, c)
+	}
+
+	return comments, nil
+}
+
+func (repo CommentsRepository) GetByCommentsPostID(postID uint64) ([]model.Comment, error) {
+	rows, err := repo.db.Query(`
+        SELECT id, post_id, author_id, content, createdAt
+        FROM comments
+        WHERE post_id = ?
+        ORDER BY createdAt DESC
+    `, postID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var comments []model.Comment
+
+	for rows.Next() {
+		var comment model.Comment
+		if err := rows.Scan(
+			&comment.ID,
+			&comment.PostID,
+			&comment.AuthorID,
+			&comment.Content,
+			&comment.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		comments = append(comments, comment)
+	}
+
+	return comments, nil
 }

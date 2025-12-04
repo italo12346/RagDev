@@ -1,4 +1,4 @@
-// PostCard.jsx atualizado com verificação e mensagem de feedback
+// PostCard.jsx atualizado com botão Ver Comentários
 "use client";
 
 import { Post } from "@/types/global";
@@ -10,6 +10,7 @@ interface PostCardProps {
   onLike: (post: Post) => void;
   onEdit?: (post: Post) => void;
   onDelete?: (id: number) => void;
+  onOpenComments?: (post: Post) => void; // 👈 NOVO
   showActions?: boolean;
   currentUserId?: number;
 }
@@ -19,6 +20,7 @@ export default function PostCard({
   onLike,
   onEdit,
   onDelete,
+  onOpenComments,
   showActions = true,
   currentUserId,
 }: PostCardProps) {
@@ -55,9 +57,6 @@ export default function PostCard({
       </div>
     );
   };
-const handleLike = () => {
-  onLike(post);
-};
 
   return (
     <div className="p-4 border rounded-xl bg-white dark:bg-gray-800 shadow-sm">
@@ -84,8 +83,10 @@ const handleLike = () => {
       )}
 
       <div className="flex items-center justify-between mt-4">
+        
+        {/* LIKE */}
         <button
-          onClick={handleLike}
+          onClick={() => onLike(post)}
           className={`px-3 py-1 rounded-lg border ${
             post.likedByUser
               ? "bg-blue-600 text-white"
@@ -95,6 +96,17 @@ const handleLike = () => {
           👍 {post.likes ?? 0}
         </button>
 
+        {/* BOTÃO DE COMENTÁRIOS */}
+        {onOpenComments && (
+          <button
+            onClick={() => onOpenComments(post)}
+            className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg"
+          >
+            💬 Ver comentários
+          </button>
+        )}
+
+        {/* AÇÕES DO AUTOR */}
         {showActions && currentUserId === post.author_id && (
           <div className="flex gap-2">
             {onEdit && (

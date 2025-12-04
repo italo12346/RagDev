@@ -1,20 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useProtectedRoute } from "@/hooks/useProtectRoute";
-import {
-  getUserPosts,
-  createPost,
-  deletePost,
-  likePost,
-  unlikePost,
-  updatePost as apiUpdatePost,
-} from "@/services/api/posts";
-import { decodeToken } from "@/utils/jwt";
 import ModalCreatePost from "@/components/CreatePostModal";
 import ModalEditPost from "@/components/ModalEditPost";
+import { useProtectedRoute } from "@/hooks/useProtectRoute";
+import {
+  updatePost as apiUpdatePost,
+  createPost,
+  deletePost,
+  getUserPosts,
+  likePost,
+  unlikePost,
+} from "@/services/api/posts";
 import { Post } from "@/types/global";
+import { decodeToken } from "@/utils/jwt";
+import { useEffect, useState } from "react";
+import CommentsModal from "./CommentsModal";
 import PostCard from "./PostsCard";
+// import CommentsModal from "@/components/CommentsModal"; // caso já exista
 
 export default function Posts() {
   useProtectedRoute();
@@ -23,6 +25,9 @@ export default function Posts() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
+
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -34,8 +39,6 @@ export default function Posts() {
     try {
       setLoading(true);
       const data = await getUserPosts(decoded.user_id);
-      // DEBUG: descomente para inspecionar o payload
-      // console.log("posts recebidos:", data);
       setPosts(data);
     } catch (err) {
       console.error("Erro ao carregar posts:", err);
@@ -105,28 +108,15 @@ export default function Posts() {
     }
   };
 
-  const renderAvatar = (post: Post) => {
-    if (post.author_photo_url)
-      return (
-        <img
-          src={post.author_photo_url}
-          className="w-10 h-10 rounded-full object-cover border"
-          alt="foto"
-        />
-      );
 
-    const letter = post.author_nickname?.[0]?.toUpperCase() ?? "?";
-
-    return (
-      <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold shadow-md">
-        {letter}
-      </div>
-    );
+  const handleOpenComments = (post: Post) => {
+    setSelectedPost(post);
+    setIsCommentsOpen(true);
   };
 
   return (
     <div className="mt-4 space-y-4">
-      {/* CRIAR POST */}
+      
       <button
         onClick={() => setIsModalOpen(true)}
         className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
@@ -134,13 +124,14 @@ export default function Posts() {
         Criar Post
       </button>
 
+      {/* Modal criar */}
       <ModalCreatePost
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleCreatePost}
       />
 
-      {/* EDITAR POST */}
+      {/* Modal editar */}
       {editingPost && (
         <ModalEditPost
           key={editingPost.id}
@@ -152,17 +143,29 @@ export default function Posts() {
         />
       )}
 
-      {/* LISTA */}
+      {/* LISTA DE POSTS */}
       {posts.map((post) => (
-  <PostCard
-    key={post.id}
-    post={post}
-    onLike={handleLike}
-    onEdit={handleEdit}
-    onDelete={handleDelete}
-    currentUserId={decoded?.user_id}
+        <PostCard
+          key={post.id}
+          post={post}
+          onLike={handleLike}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          currentUserId={decoded?.user_id}
+          onOpenComments={handleOpenComments} 
+        />
+      ))}
+
+      {/* MODAL DE COMENTÁRIOS */}
+      { 
+  <CommentsModal
+    post={selectedPost}
+    onClose={() => {
+      setIsCommentsOpen(false);
+      setSelectedPost(null);
+    }}
   />
-))}
+      }
     </div>
   );
 }

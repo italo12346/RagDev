@@ -305,3 +305,126 @@ func UnlikePost(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(updatedPost)
 }
+
+func CreateComment(w http.ResponseWriter, r *http.Request) {
+	userID, err := auth.ExtractUserID(r)
+	if err != nil {
+		http.Error(w, "Token inválido", http.StatusUnauthorized)
+		return
+	}
+
+	params := mux.Vars(r)
+	postID, err := strconv.ParseUint(params["postId"], 10, 64)
+	if err != nil {
+		http.Error(w, "ID do post inválido", http.StatusBadRequest)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Erro ao ler corpo da requisição", http.StatusBadRequest)
+		return
+	}
+
+	var comment model.Comment
+	if err := json.Unmarshal(body, &comment); err != nil {
+		http.Error(w, "JSON inválido", http.StatusBadRequest)
+		return
+	}
+
+	if comment.Content == "" {
+		http.Error(w, "Comentário vazio", http.StatusBadRequest)
+		return
+	}
+
+	comment.AuthorID = userID
+	comment.PostID = postID
+
+	db, err := database.Connect()
+	if err != nil {
+		http.Error(w, "Erro ao conectar ao banco", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	repo := repository.NewCommentsRepository(db)
+
+	commentID, err := repo.Create(comment)
+	if err != nil {
+		http.Error(w, "Erro ao criar comentário", http.StatusInternalServerError)
+		return
+	}
+
+	comment.ID = commentID
+
+	json.NewEncoder(w).Encode(comment)
+}
+func GetCommentsByPost(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	postID, err := strconv.ParseUint(params["postId"], 10, 64)
+	if err != nil {
+		http.Error(w, "ID do post inválido", http.StatusBadRequest)
+		return
+	}
+
+	db, err := database.Connect()
+	if err != nil {
+		http.Error(w, "Erro ao conectar ao banco", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	repo := repository.NewCommentsRepository(db)
+	comments, err := repo.GetByCommentsPostID(postID)
+	if err != nil {
+		http.Error(w, "Erro ao buscar comentários", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(comments)
+}
+
+func DeleteComment(w http.ResponseWriter, r *http.Request) {
+	userID, err := auth.ExtractUserID(r)
+	if err != nil {
+		http.Error(w, "Token inválido", http.StatusUnauthorized)
+		return
+	}
+
+	params := mux.Vars(r)
+	commentID, err := strconv.ParseUint(params["id"], 10, 64)
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	db, err := database.Connect()
+	if err != nil {
+		http.Error(w, "Erro ao conectar", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	repo := repository.NewCommentsRepository(db)
+
+	authorID, err := repo.GetAuthor(commentID)
+	if err != nil {
+		http.Error(w, "Erro ao buscar autor", http.StatusBadRequest)
+		return
+	}
+
+	if authorID != userID {
+		http.Error(w, "Não autorizado", http.StatusForbidden)
+		return
+	}
+
+	if err := repo.Delete(commentID); err != nil {
+		http.Error(w, "Erro ao deletar comentário", http.StatusBadRequest)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Comentário deletado",
+	})
+}

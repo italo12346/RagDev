@@ -34,3 +34,14 @@ interface Follower {
   name?: string;
   nick?: string;
 }
+export interface PostComment {
+  id: number;
+  postId: number;
+  authorId: number;
+  content: string;
+  createdAt: string;
+}
+
+export interface CommentWithUser extends PostComment {
+  author_nickname: string;
+}

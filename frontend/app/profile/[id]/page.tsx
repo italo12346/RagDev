@@ -16,6 +16,7 @@ import {
 import type { UserProfile, Post } from "@/types/global";
 import PostCard from "@/components/PostsCard";
 import UserListModal from "@/components/UserListModal";
+import CommentsModal from "@/components/CommentsModal";
 
 export default function ProfilePageUser() {
   const params = useParams();
@@ -33,6 +34,14 @@ export default function ProfilePageUser() {
   const [openFollowing, setOpenFollowing] = useState(false);
   const [followersList, setFollowersList] = useState<UserProfile[]>([]);
   const [followingList, setFollowingList] = useState<UserProfile[]>([]);
+
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+
+  const handleOpenComments = (post: Post) => {
+    setSelectedPost(post);
+    setIsCommentsOpen(true);
+  };
 
   // Buscar perfil completo
   const fetchProfile = useCallback(async () => {
@@ -134,19 +143,26 @@ export default function ProfilePageUser() {
   return (
     <>
       <div className="max-w-2xl mx-auto p-6 mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-
         {/* Header */}
         <div className="flex items-center gap-4">
           <div className="w-20 h-20 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xl font-bold text-gray-700 dark:text-gray-200">
-            {user.name?.split(" ").map((n) => n[0]).join("").toUpperCase() || "?"}
+            {user.name
+              ?.split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase() || "?"}
           </div>
 
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{user.name}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {user.name}
+            </h1>
             <p className="text-gray-500 dark:text-gray-400">@{user.nick}</p>
 
             {user.followedBack && (
-              <p className="text-sm text-green-600 dark:text-green-400">Segue você</p>
+              <p className="text-sm text-green-600 dark:text-green-400">
+                Segue você
+              </p>
             )}
           </div>
 
@@ -173,17 +189,11 @@ export default function ProfilePageUser() {
 
         {/* Followers / Following */}
         <div className="mt-4 flex gap-4 text-gray-600 dark:text-gray-400">
-          <button
-            onClick={handleOpenFollowing}
-            className="hover:underline"
-          >
+          <button onClick={handleOpenFollowing} className="hover:underline">
             {user.following ?? 0} seguindo
           </button>
 
-          <button
-            onClick={handleOpenFollowers}
-            className="hover:underline"
-          >
+          <button onClick={handleOpenFollowers} className="hover:underline">
             {user.followers ?? 0} seguidores
           </button>
         </div>
@@ -197,9 +207,13 @@ export default function ProfilePageUser() {
           </h2>
 
           {loadingPosts ? (
-            <p className="text-gray-500 dark:text-gray-400">Carregando posts...</p>
+            <p className="text-gray-500 dark:text-gray-400">
+              Carregando posts...
+            </p>
           ) : posts.length === 0 ? (
-            <p className="text-gray-500 dark:text-gray-400">Nenhum post encontrado.</p>
+            <p className="text-gray-500 dark:text-gray-400">
+              Nenhum post encontrado.
+            </p>
           ) : (
             <div className="flex flex-col gap-4">
               {posts.map((post) => (
@@ -207,7 +221,8 @@ export default function ProfilePageUser() {
                   key={post.id}
                   post={post}
                   onLike={() => {}}
-                  showActions={false}
+                  showActions={true}
+                  onOpenComments={() => handleOpenComments(post)}
                 />
               ))}
             </div>
@@ -229,6 +244,15 @@ export default function ProfilePageUser() {
         title="Seguindo"
         users={followingList}
       />
+      {isCommentsOpen && selectedPost && (
+        <CommentsModal
+          post={selectedPost}
+          onClose={() => {
+            setIsCommentsOpen(false);
+            setSelectedPost(null);
+          }}
+        />
+      )}
     </>
   );
 }

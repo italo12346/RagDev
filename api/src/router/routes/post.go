@@ -48,4 +48,22 @@ var routesPost = []Route{
 		Function:       controllers.UnlikePost,
 		Authentication: true,
 	},
+	{
+		Uri:            "/posts/{postId}/comments",
+		Methods:        []string{http.MethodGet, http.MethodOptions},
+		Function:       controllers.GetCommentsByPost,
+		Authentication: true,
+	},
+	{
+		Uri:            "/posts/{postId}/comments",
+		Methods:        []string{http.MethodPost, http.MethodOptions},
+		Function:       controllers.CreateComment,
+		Authentication: true,
+	},
+	{
+		Uri:            "/comments/{id}",
+		Methods:        []string{http.MethodDelete, http.MethodOptions},
+		Function:       controllers.DeleteComment,
+		Authentication: true,
+	},
 }

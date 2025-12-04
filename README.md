@@ -4,104 +4,64 @@ RagDev é uma rede social criada para conectar desenvolvedores, compartilhar con
 Aqui você pode criar posts, interagir com outros devs, acompanhar projetos e trocar ideias sobre tecnologia e carreira — tudo em um ambiente rápido, limpo e feito para quem respira código.
 
 ---
+# 🚀 Tecnologias Utilizadas
 
-## 🚀 Tecnologias Utilizadas
+## **Backend (API - Golang)**
+- Go (Golang)
+- Gorilla Mux
+- MySQL
+- JWT Authentication
+- MVC + Repository Pattern
+- Swagger Documentation
 
-### **Backend**
-- **Linguagem:** Go (Golang)
-- **Banco de Dados:** MySQL  
-- **Framework:** Gorilla Mux  
-- **Arquitetura:** MVC + Repository Pattern  
-- **Autenticação:** JWT  
-
-### **Frontend**
-- **Framework:** Next.js (App Router)  
-- **Linguagem:** TypeScript  
-- **Estilização:** TailwindCSS  
-- **Requisições:** Axios  
-- **Build:** Turbopack  
-
+## **Frontend (Next.js)**
+- Next.js (App Router)
+- TypeScript
+- TailwindCSS
+- Axios
+- Zustand
+- React Hooks e Components reutilizáveis
 
 ---
 
-## 📚 Funcionalidades
+# 📚 Funcionalidades
 
-### 🖥️ Backend (API)
+## 🖥️ Backend (API)
 - 👤 Cadastro e login de usuários  
 - ✍️ CRUD de posts  
 - ❤️ Sistema de likes  
-- 🔒 Autenticação com JWT  
-- 📄 Listagens, filtros e busca  
 - 👥 Seguir / deixar de seguir usuários  
-- 🛠️ API REST organizada em camadas  
+- 🔒 Autenticação com JWT  
+- 🔍 Filtros e busca  
+- 📄 Rotas documentadas com Swagger  
+- 🧱 Arquitetura por camadas (Controller, Model, Repository)
 
-### 🎨 Frontend (Next.js)
+## 🎨 Frontend (Next.js)
 - 🌙 Interface moderna e responsiva  
 - 🧭 Navegação rápida com App Router  
 - ✍️ Criar e visualizar posts  
-- ❤️ Curtir e interagir sem recarregar página  
-- 👤 Perfis completos com posts e seguidores  
-- 🔐 Login e cadastro usando JWT   
-- 🔄 Loaders, toasts e UX aprimorada  
-- 💾 SSR/SSG onde fizer sentido  
+- ❤️ Curtir e interagir em tempo real  
+- 👤 Perfis completos com posts, seguidores e seguindo  
+- 🔐 Login e cadastro conectados à API  
+- 🗂️ Pastas organizadas (contexts, hooks, utils, components, services)
 
 ---
 
-## 🏗️ Estrutura do Projeto
+# 🏗️ Arquitetura do Projeto
 
-```bash
-# 📱 RagDev — Sua Rede Social para Desenvolvedores
-
-RagDev é uma rede social criada para conectar desenvolvedores, compartilhar conhecimento e construir comunidade.  
-Aqui você pode criar posts, interagir com outros devs, acompanhar projetos e trocar ideias sobre tecnologia e carreira — tudo em um ambiente rápido, limpo e feito para quem respira código.
-
----
-
-## 🚀 Tecnologias Utilizadas
-
-### **Backend (API - Golang)**
-- **Linguagem:** Go  
-- **Framework:** Gorilla Mux  
-- **Arquitetura:** MVC + Repository Pattern  
-- **Banco de Dados:** MySQL  
-- **Autenticação:** JWT  
-- **Documentação:** Swagger (swagger_api_doc.yaml)
-
-### **Frontend (Next.js)**
-- **Framework:** Next.js (App Router)  
-- **Linguagem:** TypeScript  
-- **Estilização:** TailwindCSS  
-- **Gerenciamento de Estado:** Zustand  
-- **Camada de Serviços:** Axios  
-- **Componentes:** shadcn/ui (opcional)
+```
+Cliente (Next.js)
+      ↓
+Serviços (Axios) → Auth + Posts + Profile
+      ↓
+API REST (Go)
+      ↓
+Controller → Repository → MySQL
+```
 
 ---
 
-## 📚 Funcionalidades
-
-### 🖥️ Backend (API)
-- Cadastro e login de usuários  
-- CRUD de posts  
-- Sistema de likes  
-- Seguir / deixar de seguir usuários  
-- Autenticação via JWT  
-- Rotas documentadas com Swagger  
-- Filtros e busca  
-- Arquitetura por camadas (Controller, Model, Repository)
-
-### 🎨 Frontend (Next.js)
-- Interface moderna responsiva  
-- Login e cadastro conectados à API  
-- Criar, visualizar e curtir posts  
-- Perfis com posts e seguidores  
-- Zustand para estados globais  
-- Hooks reutilizáveis  
-- Camada de serviços centralizada  
-- Pastas bem organizadas (contexts, utils, components, etc.)
-
----
-
-## 🏗️ Estrutura do Projeto
+# 📁 Estrutura do Projeto
 
 ```bash
 RAGDEV/
@@ -122,7 +82,6 @@ RAGDEV/
 │   └── swagger_api_doc.yaml
 │
 └── frontend/
-    ├── .next/
     ├── app/
     ├── components/
     ├── contexts/
@@ -131,48 +90,109 @@ RAGDEV/
     ├── services/
     ├── types/
     ├── utils/
-    │── .env.example
     ├── .env
+    ├── .env.example
     ├── next.config.ts
     ├── eslint.config.mjs
     ├── package.json
     ├── tsconfig.json
     ├── postcss.config.mjs
     └── tailwind.config.js
+```
 
-│
-└── README.md
-## 🔧 Como Rodar o Projeto
+---
+
+# 🔧 Como Rodar o Projeto
 
 ## ⚠️ Pré-requisitos
-- É necessário ter **MySQL** instalado e rodando.
-- Node.js 18+ (para o FrontEnd)
-- Go 1.20+ (para o BackEnd)
+- **MySQL** instalado e rodando  
+- **Node.js 18+**  
+- **Go 1.20+**  
 
-### 1️ Clonar o repositório
+---
+
+# 🐹 Rodando o Backend (Go)
+
+### 1️⃣ Entrar na pasta
 ```bash
-git clone https://github.com/seu-usuario/ragdev.git
-cd ragdev
 cd api
+```
 
-### 2 Crie Variaveis de Ambiente
+### 2️⃣ Configurar `.env`
+Crie ou edite o arquivo `.env`:
 
+```env
 DB_USER=root
 DB_PASSWORD=suasenha
 DB_NAME=ragdev
 DB_HOST=localhost
 JWT_SECRET=minha_super_chave
+```
 
-### 3 Instalar dependencias 
+### 3️⃣ Instalar dependências
+```bash
 go mod tidy
+```
 
-### 4 Executar o servidor 
+### 4️⃣ Rodar o servidor
+```bash
 go run main.go
+```
 
+A API estará disponível em:
 
- ## Para o FrontEnd
+```
+http://localhost:5000
+```
+
+Swagger:
+```
+http://localhost:5000/swagger/
+```
+
+---
+
+# ⚛️ Rodando o Frontend (Next.js)
+
+### 1️⃣ Entrar na pasta
+
+```bash
 cd frontend
+```
+
+### 2️⃣ Instalar dependências
+
+```bash
 npm install
+```
+
+### 3️⃣ Rodar em desenvolvimento
+
+```bash
+npm run dev
+```
+
+### 4️⃣ (Opcional) Build de produção
+
+```bash
 npm run build
 npm start
 ```
+
+Frontend disponível em:
+
+```
+http://localhost:3000
+```
+
+---
+
+# 🧪 Scripts de Banco de Dados (Opcional)
+
+Crie o banco:
+
+```sql
+CREATE DATABASE ragdev;
+```
+
+---
